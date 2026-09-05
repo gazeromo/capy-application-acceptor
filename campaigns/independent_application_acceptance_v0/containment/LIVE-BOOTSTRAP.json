@@ -1,0 +1,67 @@
+{
+  "config": {
+    "argv": [
+      "/Users/gazeromo/.local/bin/muse",
+      "exec",
+      "--json",
+      "--model",
+      "muse-spark-1.3-contributor",
+      "--reasoning-effort",
+      "xhigh",
+      "--disable-approval",
+      "--approval-judge",
+      "off",
+      "--sandbox-network",
+      "restricted",
+      "--trust-workspace",
+      "--no-foreign-personal-context",
+      "--disable-web-tools",
+      "--disable-shell",
+      "--disable-write",
+      "--max-model-steps",
+      "1",
+      "--session-id",
+      "8a94960c-a182-41f4-aaf4-5452da71797d",
+      "--workspace",
+      "/Users/gazeromo/dev/capy-application-acceptor",
+      "Read-only transport identity preflight. Do not invoke tools, inspect files, access personal context, spawn subagents, or implement anything. Reply only CAPY_MUSE_PROXY_IDENTITY_OK. Do not self-report model identity."
+    ],
+    "credential_source": "official authenticated Muse; captured in isolated gateway memory only",
+    "credential_values_recorded": false,
+    "mode": "live_host_identity_bootstrap",
+    "public_prompt_sha256": "5209331b74a5356939d9af860e3ce7463671eebc8bf758e94bb61dfb8a3582a4",
+    "session_id": "8a94960c-a182-41f4-aaf4-5452da71797d"
+  },
+  "exit": {
+    "returncode": 0
+  },
+  "export_publication": "Full export retained locally; encrypted reasoning not published. Facts projected here.",
+  "gateway_log": [
+    "{\"credential_loaded\": false, \"kind\": \"started\", \"mode\": \"gateway\"}",
+    "{\"kind\": \"bootstrap_consumed\"}",
+    "{\"bootstrap\": true, \"kind\": \"forward\", \"model\": \"muse-spark-1.3-contributor\", \"request_bytes\": 127999, \"status\": 200}"
+  ],
+  "implementation_run_count": 0,
+  "kind": "live-bootstrap",
+  "local_export_bytes": 195656,
+  "local_export_sha256": "f68cdf62d7fc9bc8bdf9679fd71da5c0a06df07c07a2787006e2fcc21c006632",
+  "observed_response_models": [
+    "muse-spark-1.3-contributor"
+  ],
+  "permissions": [],
+  "raw_events_sha256": "57125601033fdd5678d473a113163c8aec1d03c0df2159719b0e708b056e1c6c",
+  "terminals": [
+    {
+      "command_id": "121127a2-1f51-4e0d-b46c-30ab36e82ce5",
+      "kind": "run_terminal",
+      "reason": null,
+      "run_stream": {
+        "id": "121127a2-1f51-4e0d-b46c-30ab36e82ce5",
+        "kind": "run"
+      },
+      "terminal": "completed",
+      "text": "CAPY_MUSE_PROXY_IDENTITY_OK"
+    }
+  ],
+  "tools": []
+}

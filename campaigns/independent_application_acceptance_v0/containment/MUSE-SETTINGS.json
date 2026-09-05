@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "endpoint_transport": {
+    "base_url": "http://gateway:8765/v1",
+    "auth": "bearer"
+  },
+  "run": {
+    "reminder_roster": [],
+    "reminder_observers": {
+      "todo": {
+        "enabled": false
+      },
+      "memory": {
+        "enabled": false
+      },
+      "skill": {
+        "enabled": false
+      },
+      "goal": {
+        "enabled": false
+      },
+      "verify": {
+        "enabled": false
+      },
+      "scope": {
+        "enabled": false
+      }
+    }
+  }
+}

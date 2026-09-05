@@ -1,0 +1,136 @@
+{
+  "config": {
+    "argv": [
+      "docker",
+      "exec",
+      "-i",
+      "capy-muse-worker-01a07095",
+      "muse",
+      "exec",
+      "--json",
+      "--model",
+      "muse-spark-1.3-contributor",
+      "--reasoning-effort",
+      "xhigh",
+      "--api-key-stdin",
+      "--disable-approval",
+      "--approval-judge",
+      "off",
+      "--sandbox-network",
+      "restricted",
+      "--trust-workspace",
+      "--no-foreign-personal-context",
+      "--disable-web-tools",
+      "--max-model-steps",
+      "3",
+      "--session-id",
+      "b2317e3a-8a97-4c16-97cb-e4bed72c7495",
+      "--workspace",
+      "/workspace",
+      "Synthetic transport preflight only. Execute the supplied containment test and stop. No implementation, no subagents, no other file reads."
+    ],
+    "credential_location": "isolated gateway and fixture containers only",
+    "mode": "synthetic_upstream_fixture_no_model_call",
+    "session_id": "b2317e3a-8a97-4c16-97cb-e4bed72c7495"
+  },
+  "exit": {
+    "returncode": 0
+  },
+  "export_publication": "Full export retained locally; encrypted reasoning not published. Facts projected here.",
+  "gateway_log": [
+    "{\"credential_loaded\": true, \"kind\": \"started\", \"mode\": \"gateway\"}",
+    "{\"bootstrap\": false, \"kind\": \"forward\", \"model\": \"muse-spark-1.3-contributor\", \"request_bytes\": 112921, \"status\": 200}",
+    "{\"bootstrap\": false, \"kind\": \"forward\", \"model\": \"muse-spark-1.3-contributor\", \"request_bytes\": 114792, \"status\": 200}"
+  ],
+  "implementation_run_count": 0,
+  "kind": "synthetic-transport-8",
+  "local_export_bytes": 235633,
+  "local_export_sha256": "ba0c2282c5b73231fac6bd5c3404754fba2187ae89159f47514dac9752563534",
+  "matrix": {
+    "arbitrary_network": {
+      "allowed": false,
+      "errno": 1,
+      "error": "PermissionError"
+    },
+    "credential_canary_processes_visible": [],
+    "credential_environment_names_present": [],
+    "credential_proxy_ip": "172.20.0.2",
+    "credential_proxy_network": {
+      "allowed": false,
+      "errno": -3,
+      "error": "gaierror"
+    },
+    "credential_proxy_numeric_network": {
+      "allowed": false,
+      "errno": 1,
+      "error": "PermissionError"
+    },
+    "git_write": {
+      "allowed": false,
+      "errno": 30,
+      "error": "OSError"
+    },
+    "host_mounts_present": false,
+    "host_private_read": {
+      "allowed": false,
+      "errno": 2,
+      "error": "FileNotFoundError"
+    },
+    "host_private_write": {
+      "allowed": false,
+      "errno": 2,
+      "error": "FileNotFoundError"
+    },
+    "host_sibling_read": {
+      "allowed": false,
+      "errno": 2,
+      "error": "FileNotFoundError"
+    },
+    "provider_auth_file_read": {
+      "allowed": false,
+      "errno": 13,
+      "error": "PermissionError"
+    },
+    "python_subprocess_canary_visible": false,
+    "workspace_read": {
+      "allowed": true
+    },
+    "workspace_write": {
+      "allowed": true
+    }
+  },
+  "observed_response_models": [
+    "muse-spark-1.3-contributor"
+  ],
+  "permissions": [],
+  "raw_events_sha256": "20d2c18805e8d8728ccf919330d3ab0afbdc41fd2d90d30f5db45b85f77c74b6",
+  "terminals": [
+    {
+      "command_id": "9ea2f0d7-583a-4c22-af31-fa7c45a549de",
+      "kind": "run_terminal",
+      "reason": null,
+      "run_stream": {
+        "id": "9ea2f0d7-583a-4c22-af31-fa7c45a549de",
+        "kind": "run"
+      },
+      "terminal": "completed",
+      "text": "CAPY_SYNTHETIC_TRANSPORT_FINISHED. This was a fixture, not a model evaluation."
+    }
+  ],
+  "tools": [
+    {
+      "call_id": "call_capy_fixture",
+      "command_id": "9ea2f0d7-583a-4c22-af31-fa7c45a549de",
+      "correlation_facts": {
+        "outcome": "success",
+        "tool_name": "bash"
+      },
+      "kind": "tool_result",
+      "run_stream": {
+        "id": "9ea2f0d7-583a-4c22-af31-fa7c45a549de",
+        "kind": "run"
+      },
+      "text": "{\n  \"chunk_id\": \"exec-1-1\",\n  \"command\": \"python3 /workspace/tools/muse_containment/probe.py\",\n  \"description\": \"Run synthetic containment matrix\",\n  \"exit_code\": 0,\n  \"terminal_status\": \"completed\",\n  \"output\": \"{\\\"arbitrary_network\\\": {\\\"allowed\\\": false, \\\"errno\\\": 1, \\\"error\\\": \\\"PermissionError\\\"}, \\\"credential_canary_processes_visible\\\": [], \\\"credential_environment_names_present\\\": [], \\\"credential_proxy_ip\\\": \\\"172.20.0.2\\\", \\\"credential_proxy_network\\\": {\\\"allowed\\\": false, \\\"errno\\\": -3, \\\"error\\\": \\\"gaierror\\\"}, \\\"credential_proxy_numeric_network\\\": {\\\"allowed\\\": false, \\\"errno\\\": 1, \\\"error\\\": \\\"PermissionError\\\"}, \\\"git_write\\\": {\\\"allowed\\\": false, \\\"errno\\\": 30, \\\"error\\\": \\\"OSError\\\"}, \\\"host_mounts_present\\\": false, \\\"host_private_read\\\": {\\\"allowed\\\": false, \\\"errno\\\": 2, \\\"error\\\": \\\"FileNotFoundError\\\"}, \\\"host_private_write\\\": {\\\"allowed\\\": false, \\\"errno\\\": 2, \\\"error\\\": \\\"FileNotFoundError\\\"}, \\\"host_sibling_read\\\": {\\\"allowed\\\": false, \\\"errno\\\": 2, \\\"error\\\": \\\"FileNotFoundError\\\"}, \\\"provider_auth_file_read\\\": {\\\"allowed\\\": false, \\\"errno\\\": 13, \\\"error\\\": \\\"PermissionError\\\"}, \\\"python_subprocess_canary_visible\\\": false, \\\"workspace_read\\\": {\\\"allowed\\\": true}, \\\"workspace_write\\\": {\\\"allowed\\\": true}}\\n\",\n  \"original_output_bytes\": 936,\n  \"original_output_tokens\": 234,\n  \"truncated\": false\n}"
+    }
+  ]
+}

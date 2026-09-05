@@ -1,0 +1,20 @@
+{
+  "contribution_run_count": 0,
+  "credential_source": "official host Muse authentication forwarded once to isolated credential sidecar memory",
+  "linux_binary_sha256": "4ffcf55f5eb0668643f30c5febd90d188b9a2da65858918444d31f6046940120",
+  "mac_launcher_sha256": "21c66e550a71cac2e4af081cc33d10bec81993d0043ec492761fc449e6c440f6",
+  "native_sandbox_disabled": false,
+  "official_release": "1.0.3-R2198.1",
+  "provider_key_in_worker": false,
+  "qualification": "CONTAINMENT_PASSED; PRODUCT_AND_CODING_UNEVALUATED",
+  "release_manifest_sha256": "5aba79f5aaabf54c69953c91bb2ffe920574ae51211f9523526bb6d1cc2d92a2",
+  "requested_model": "muse-spark-1.3-contributor",
+  "tooling": {
+    "Dockerfile": "a72d1d477480280a602fbbb67d25a1fc10b5f1780c9d5c1ca7d0665f72076e44",
+    "broker.py": "333cc20b928600d17456ca3db8d7b3ea102cc84bf88749279e1523d97cd17f2a",
+    "nested-seccomp.json": "854eae3cc05b26a9dd20184b5a93c1a2ab405f38a2deed4426b4c7354647fd2c",
+    "probe.py": "26482eaadc7098e9fc941673bb6b242c95e2df8dc1c08e7b3b909dae6f24db97",
+    "test_broker.py": "741fc3a25a5173ed9c0a1573145b97bb427a9fd943827d3deb0f8c41e145bdd8"
+  },
+  "worker_auth": "separate random gateway-only capability, supplied on stdin; no real provider key"
+}
