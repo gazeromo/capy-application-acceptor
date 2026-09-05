@@ -28,7 +28,7 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     files["capy_application_acceptor/_release.json"] = canonical_bytes(identity)
     files[DIST + "/METADATA"] = ("Metadata-Version: 2.4\nName: capy-application-acceptor\nVersion: 0.1.0\n"
         "Summary: Independent deterministic acceptance of synthetic Capy applications\n"
-        "Requires-Python: >=3.11\nLicense-Expression: LicenseRef-Proprietary\n\n").encode()
+        "Requires-Python: >=3.11\nLicense-Expression: LicenseRef-Proprietary\nLicense-File: LICENSE\n\n").encode()
     files[DIST + "/WHEEL"] = b"Wheel-Version: 1.0\nGenerator: capy-application-acceptor-stdlib\nRoot-Is-Purelib: true\nTag: py3-none-any\n"
     files[DIST + "/entry_points.txt"] = b"[console_scripts]\ncapy-acceptor = capy_application_acceptor.cli:main\n"
     files[DIST + "/licenses/LICENSE"] = (ROOT / "LICENSE").read_bytes()

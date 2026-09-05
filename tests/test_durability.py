@@ -148,7 +148,7 @@ class ProcessOwnershipTests(unittest.TestCase):
             result = run_bounded([sys.executable, str(ROOT / "tests/process_fixture.py"), "app", td, "normal"], input_bytes=None,
                 timeout_seconds=10, max_stdout=1024, max_stderr=1024, env=scrubbed_env({}), cwd=root)
             self.assertEqual(result.exit_code, 0)
-            self.assertEqual(result.stdout, b"complete\n")
+            self.assertEqual(result.stdout.splitlines(), [b"complete"])
             self.assertFalse(alive(int((root / "child.pid").read_text())))
 
     def interrupt(self, method):
