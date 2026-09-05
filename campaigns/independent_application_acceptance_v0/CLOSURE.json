@@ -4,7 +4,7 @@
   "deviations": [
     "Owner \u00a723 amendment: no native unprivileged macOS execution; whole-tree cleanup requirement unchanged",
     "Astra product oracle revisions O1-O5 adjudicated separately; original hidden files/scores unchanged",
-    "Two failure causes across three failed CI runs repaired and retained in CI-REPAIRS.json"
+    "Three failure causes across three failed CI runs repaired and retained in CI-REPAIRS.json"
   ],
   "implementation": {
     "contract": "capy.independent-application-acceptance/v0",
@@ -21,7 +21,8 @@
   "qualification_ci": 33967453188,
   "qualification_head": "fc7eebdd6c4b47fd5186d2a81c834222061d2e8c",
   "remaining": [
-    "Review E",
+    "Evidence-head CI required by plan phase9",
+    "Review E closure-delta ACCEPT",
     "strict main fast-forward",
     "post-merge CI and remote verification"
   ],
