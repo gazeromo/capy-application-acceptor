@@ -1,0 +1,48 @@
+{
+  "actual_acceptor_qualification": "RECORDED_SEPARATELY_AT_EXACT_RELEASE",
+  "candidate_receipts": [
+    {
+      "application_commit": "497fe066a1e3d5c54877cda3f60c32756831670f",
+      "application_tree": "fbe9497187d8311b30168f92e9098382b8e381e0",
+      "candidate_id": "rc_8a099e5777253330790a1061cdacaa49",
+      "candidate_sha256": "21923a5752a314ca502a141861e614829b3d8b2d006c54622d83d9ca8503aec6",
+      "classification": "VERIFIED",
+      "developer_version": "0.4.0",
+      "synthesized_verification": false,
+      "verification_id": "ver_e99feba60bc44c6ea843911d2241f706",
+      "verification_status": "PASSED"
+    },
+    {
+      "application_commit": "e84343ebd30e648661608552eb179b891ad38310",
+      "application_tree": "91248abcad912afe911e58ef4783e19b79b0ea45",
+      "candidate_id": "rc_f5498418a7367d0c3c21426c5f022e3a",
+      "candidate_sha256": "06aa352d7acc659a701525335109ae9cd1e6caab1480bc6c4658307521e90406",
+      "classification": "VERIFIED",
+      "developer_version": "0.4.0",
+      "synthesized_verification": false,
+      "verification_id": "ver_59b7c0172c744d3083a54d5ca565c9cc",
+      "verification_status": "PASSED"
+    },
+    {
+      "application_commit": "96a2f7fd06669c315d2a04eba1fa97750a7ef960",
+      "application_tree": "9487be7a23cc633b3a8b3a98749038772a688f15",
+      "candidate_id": "rc_56f5f1b4f268d2551e07c06a957e9039",
+      "candidate_sha256": "72f11e6ea927648e1c5dcb26a9b7062d3593850ca11dc362ece21f273f17bff9",
+      "classification": "VERIFIED",
+      "developer_version": "0.4.0",
+      "synthesized_verification": false,
+      "verification_id": "ver_e6f3e5a39587487885de4ade002eafc4",
+      "verification_status": "PASSED"
+    }
+  ],
+  "developer_accepted_commit": "9f0d0334e1eedc230f109d13bc9893aac0d56750",
+  "developer_wheel_sha256": "99264d02561180d44c002dfe3a71d02c54c70c48036b34d1fadbbd0d4df11de2",
+  "notes": [
+    "All three candidates were exported by installed accepted Developer0.4.0 after actual PASSED/VERIFIED.",
+    "Profiles were frozen independently before the test application source was authored. Test controls derived later are not new Developer verifications."
+  ],
+  "profile_freeze": {
+    "artifact_profile_sha256": "63d9ff5bde2899fee59da23914293045d2db6364c8255a81720ba69afc24ac87",
+    "csv-mean.capya": "9d4199c41d641c1dba2c07d31bd680986f7f41faea062cf214d7d759da56b893"
+  }
+}

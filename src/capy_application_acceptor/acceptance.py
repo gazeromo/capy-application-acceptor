@@ -27,7 +27,7 @@ def _release_invalid() -> AcceptorError:
     return AcceptorError("RELEASE_INVALID", "release")
 
 
-def evaluate(candidate: Candidate, profile: Profile, release: dict, work_root: Path) -> Evaluation:
+def evaluate(candidate: Candidate, profile: Profile, release: dict, work_root: Path, *, on_event=None) -> Evaluation:
     # Validate work_root is an existing empty directory.
     try:
         if not isinstance(work_root, Path):
@@ -45,19 +45,19 @@ def evaluate(candidate: Candidate, profile: Profile, release: dict, work_root: P
     # All execution must leave root empty on every return; cleanup failure
     # raises CLEANUP_FAILED and never returns ACCEPTED.
     try:
-        return _evaluate_inner(candidate, profile, release, work_root)
+        return _evaluate_inner(candidate, profile, release, work_root, on_event=on_event)
     finally:
         # Ensure cleanup on every return path (including raises? Spec says on
         # every return; we also clean on raises to avoid leaking, but preserve
         # original error unless cleanup itself fails).
-        pass
+        _cleanup_children(work_root)
 
 
-def _evaluate_inner(candidate: Candidate, profile: Profile, release: dict, work_root: Path) -> Evaluation:
+def _evaluate_inner(candidate: Candidate, profile: Profile, release: dict, work_root: Path, *, on_event=None) -> Evaluation:
     # Wrap entire trial to guarantee cleanup.
     created: list[Path] = []
     try:
-        result = _trial(candidate, profile, release, work_root, created)
+        result = _trial(candidate, profile, release, work_root, created, on_event=on_event)
         _cleanup_children(work_root)
         return result
     except AcceptorError as e:
@@ -123,7 +123,7 @@ def _validate_release(release) -> dict:
     return dict(release)
 
 
-def _trial(candidate, profile, release, work_root: Path, created: list) -> Evaluation:
+def _trial(candidate, profile, release, work_root: Path, created: list, *, on_event=None) -> Evaluation:
     release_clean = _validate_release(release)
     # Basic type checks for candidate/profile (must be validated models).
     if not isinstance(candidate, Candidate) or not isinstance(profile, Profile):
@@ -248,6 +248,8 @@ def _trial(candidate, profile, release, work_root: Path, created: list) -> Evalu
             created.append(work_case)
         except OSError as e:
             raise AcceptorError("EXECUTION_ENVIRONMENT_UNAVAILABLE", "environment") from e
+        if on_event is not None:
+            on_event("case_started", {"case_id": case["case_id"], "order": order})
         raw = run_one_case(
             candidate=candidate,
             profile=profile,
@@ -335,6 +337,8 @@ def _trial(candidate, profile, release, work_root: Path, created: list) -> Evalu
             "artifact_count": len(raw.get("artifacts", [])),
         }
         case_records.append(rec)
+        if on_event is not None:
+            on_event("case_terminal", {"projection": proj, "diagnostics": rec})
 
     # Overall classification: first rejection in case order, else ACCEPTED.
     first_reject = None

@@ -143,8 +143,6 @@ def classify_case(
     # Every extra/undeclared output, dotfile, unsafe name, directory, or
     # symlink must be rejected for successful and failed cases, without
     # exposing unsafe names in portable evidence (already filtered).
-    if artifact_anomaly is not None:
-        return "REJECTED_ARTIFACT_SET_MISMATCH"
     # Now observed is ok or failed with valid envelope.
     if expect["status"] == "ok" and observed_status == "failed":
         return "REJECTED_RESULT_MISMATCH"
@@ -154,12 +152,14 @@ def classify_case(
         if expect.get("failure_code") != observed_failure_code:
             return "REJECTED_FAILURE_CODE_MISMATCH"
         # Failed cases expect no artifacts; any produced file is an extra.
-        if actual_artifacts:
+        if artifact_anomaly is not None or actual_artifacts:
             return "REJECTED_ARTIFACT_SET_MISMATCH"
         return "CASE_MATCHED"
     # Both ok: compare result exact JSON values/types.
     if not _json_equal(expect.get("result"), observed_result):
         return "REJECTED_RESULT_MISMATCH"
+    if artifact_anomaly is not None:
+        return "REJECTED_ARTIFACT_SET_MISMATCH"
     # Compare artifact sets then bytes.
     exp_names = sorted(a["filename"] for a in expect.get("artifacts", []))
     obs_names = sorted(n for n, _ in actual_artifacts)

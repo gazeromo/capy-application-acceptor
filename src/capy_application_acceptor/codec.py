@@ -56,6 +56,12 @@ def parse_strict_json(data: bytes):
         raise ValueError("duplicate-key") from e
     except (json.JSONDecodeError, ValueError) as e:
         raise ValueError("json-invalid") from e
+    # Encoding also rejects overflow-produced infinity and escaped lone
+    # surrogates, which json.loads accepts even with parse_constant.
+    try:
+        canonical_bytes(value)
+    except (ValueError, UnicodeError, TypeError) as exc:
+        raise ValueError("json-unencodable") from exc
     # Depth check.
     if _depth(value) > 32:
         raise ValueError("depth")
@@ -214,7 +220,7 @@ def is_safe_basename_inner_part(part: str) -> bool:
     # Parts may include extensions; reuse basename logic but allow same set.
     # Inner files are like 'capability.toml', 'conformance', etc.
     # Directories like 'conformance' must also be safe.
-    if _BASENAME_RE.fullmatch(part) is None:
+    if re.fullmatch(r"[A-Za-z0-9._-]{1,128}", part) is None or part.casefold() in {".git", ".hg", ".svn"}:
         # Allow lowercase dir names? They match anyway. Return False otherwise.
         return False
     if part.endswith("."):

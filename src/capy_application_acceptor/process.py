@@ -1,298 +1,195 @@
-"""Bounded subprocess with wall-time and output limits, portable tree reaping."""
+"""Bounded streams and OS-owned process trees, including owner interruption."""
 from __future__ import annotations
 
+from contextvars import ContextVar
+from dataclasses import dataclass
+import json
 import os
+from pathlib import Path
+import selectors
 import signal
 import subprocess
 import sys
 import threading
 import time
-from dataclasses import dataclass
+
+from .errors import AcceptorError
+
+# Only the POSIX guardian inherits this lock descriptor; application code does not.
+IDENTITY_LEASE = ContextVar("acceptor_identity_lease", default=None)
 
 
 @dataclass
 class BoundedResult:
-    exit_code: int | None  # None on timeout/kill
-    stdout: bytes  # bounded prefix (up to limit+1 to detect overflow)
+    exit_code: int | None
+    stdout: bytes
     stderr: bytes
-    stdout_truncated: bool  # True when limit exceeded
+    stdout_truncated: bool
     stderr_truncated: bool
     timed_out: bool
     duration_ms: int
 
 
-def _kill_tree(proc: subprocess.Popen):
-    try:
-        if os.name == "posix":
-            try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            except (ProcessLookupError, PermissionError, OSError):
-                try:
-                    proc.kill()
-                except OSError:
-                    pass
-        else:
-            # Windows: terminate the whole tree, not only the immediate child.
-            try:
-                subprocess.run(
-                    ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    timeout=5,
-                )
-            except Exception:
-                pass
-            try:
-                proc.kill()
-            except OSError:
-                pass
-    except OSError:
-        pass
-
-
-def _kill_pgid(pgid: int | None, proc: subprocess.Popen):
-    # Prefer stored pgid so descendants are reaped even after the immediate
-    # parent has exited (getpgid(parent) would then fail).
-    if pgid is not None and os.name == "posix":
+class _Owner:
+    def __init__(self, argv, input_bytes, env, cwd, deadline):
+        self.proc = None
+        self.guard = None
+        self.job = None
+        self.closed = False
+        kwargs = dict(stdin=subprocess.PIPE if input_bytes is not None else subprocess.DEVNULL,
+                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=str(cwd), bufsize=0)
+        ready_read = ready_write = None
         try:
-            os.killpg(pgid, signal.SIGKILL)
-            return
-        except (ProcessLookupError, PermissionError, OSError):
-            pass
-    _kill_tree(proc)
-
-
-def run_bounded(
-    argv: list[str],
-    *,
-    input_bytes: bytes | None,
-    timeout_seconds: float,
-    max_stdout: int,
-    max_stderr: int,
-    env: dict[str, str],
-    cwd,
-) -> BoundedResult:
-    """Run child with bounded wall time and bounded stdout/stderr while reading.
-
-    Reads incrementally; terminates and reaps the child tree on timeout or
-    when either stream exceeds its limit. Never captures unbounded output.
-    """
-    start = time.monotonic()
-    # start_new_session detaches process group for portable tree kill on posix.
-    # On Windows create an isolated process group so taskkill /T can reap it.
-    _creationflags = 0
-    if os.name == "nt":
-        _creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-    try:
-        proc = subprocess.Popen(
-            argv,
-            stdin=subprocess.PIPE if input_bytes is not None else None,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=env,
-            cwd=str(cwd),
-            start_new_session=(os.name == "posix"),
-            creationflags=_creationflags,
-        )
-    except OSError as e:
-        raise e
-    # Capture process-group id immediately; after the parent exits getpgid(pid)
-    # fails, but the stored pgid still identifies descendants sharing the group.
-    stored_pgid: int | None = None
-    if os.name == "posix":
-        try:
-            stored_pgid = os.getpgid(proc.pid)
-        except OSError:
-            stored_pgid = None
-    stdout_chunks: list[bytes] = []
-    stderr_chunks: list[bytes] = []
-    stdout_len = 0
-    stderr_len = 0
-    stdout_over = False
-    stderr_over = False
-    timed_out = False
-    # Feed stdin in a thread to avoid deadlock with large inputs (inputs are small).
-    stdin_error = None
-
-    def _feed():
-        nonlocal stdin_error
-        try:
-            if input_bytes is not None and proc.stdin is not None:
-                # Write in chunks; stdin sizes are bounded (request <=64KiB).
-                proc.stdin.write(input_bytes)
-                proc.stdin.close()
-            elif proc.stdin is not None:
-                proc.stdin.close()
-        except (BrokenPipeError, OSError) as e:
-            stdin_error = e
+            if os.name == "nt":
+                from .windows_job import Job
+                self.job = Job()
+                # CREATE_SUSPENDED: no application instructions before job assignment.
+                self.proc = subprocess.Popen(argv, creationflags=0x4 | 0x200, **kwargs)
+                self.job.attach_and_resume(self.proc)
+            else:
+                ready_read, ready_write = os.pipe()
+                launcher = str(Path(__file__).with_name("_process_launch.py"))
+                self.proc = subprocess.Popen([sys.executable, "-I", launcher, str(ready_read), json.dumps(argv)],
+                                             start_new_session=True, pass_fds=(ready_read,), **kwargs)
+                os.close(ready_read); ready_read = None
+                lease = IDENTITY_LEASE.get()
+                fds = () if lease is None else (lease,)
+                self.guard = subprocess.Popen([sys.executable, "-I", str(Path(__file__).with_name("_process_guard.py")), str(self.proc.pid)],
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                    env=env, cwd=str(cwd), bufsize=0, start_new_session=True, pass_fds=fds)
+                with selectors.DefaultSelector() as selector:
+                    selector.register(self.guard.stdout, selectors.EVENT_READ)
+                    if not selector.select(max(0, min(5, deadline - time.monotonic()))) or self.guard.stdout.readline() != b"READY\n":
+                        raise OSError("process guardian unavailable")
+                os.write(ready_write, b"1")
+        except BaseException:
             try:
-                if proc.stdin is not None:
-                    proc.stdin.close()
-            except OSError:
-                pass
-
-    feeder = threading.Thread(target=_feed, daemon=True)
-    feeder.start()
-
-    def _read_once(stream, n: int) -> bytes:
-        # Incremental prompt read: read1/os.read return available bytes
-        # without waiting for the full request, unlike BufferedReader.read.
-        read1 = getattr(stream, "read1", None)
-        if callable(read1):
-            try:
-                return read1(n)
-            except (OSError, ValueError):
-                raise
-        try:
-            return os.read(stream.fileno(), n)
-        except (OSError, ValueError):
+                self.stop()
+            finally:
+                if self.proc is not None:
+                    for stream in (self.proc.stdin, self.proc.stdout, self.proc.stderr):
+                        if stream is not None:
+                            stream.close()
             raise
+        finally:
+            for fd in (ready_read, ready_write):
+                if fd is not None:
+                    os.close(fd)
 
-    # Reader threads for stdout/stderr with bounds.
-    def _read_stream(stream, chunks: list, kind: str):
-        nonlocal stdout_len, stderr_len, stdout_over, stderr_over
+    def stop(self):
+        if self.closed:
+            return
+        self.closed = True
+        failure = False
+        if self.job is not None:
+            try:
+                self.job.terminate()
+            except OSError:
+                failure = True
+            finally:
+                self.job.close()
+        if self.guard is not None:
+            try:
+                self.guard.stdin.close()
+                if self.guard.wait(timeout=4) != 0:
+                    failure = True
+            except (OSError, subprocess.TimeoutExpired):
+                failure = True
+                self.guard.kill()
+                self.guard.wait(timeout=2)
+            finally:
+                self.guard.stdout.close()
+        if self.proc is not None:
+            # Also closes the unstarted launch gate case if guard creation failed.
+            try:
+                if os.name == "posix" and (self.guard is None or failure) and self.proc.poll() is None:
+                    os.killpg(self.proc.pid, signal.SIGKILL)
+                elif os.name == "nt" and self.proc.poll() is None:
+                    self.proc.kill()
+            except ProcessLookupError:
+                pass
+            except OSError:
+                failure = True
+            try:
+                self.proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                failure = True
+        if failure:
+            raise AcceptorError("CLEANUP_FAILED")
+
+
+def run_bounded(argv, *, input_bytes, timeout_seconds, max_stdout, max_stderr, env, cwd):
+    start = time.monotonic()
+    deadline = start + timeout_seconds
+    owner = _Owner(argv, input_bytes, env, cwd, deadline)
+    proc = owner.proc
+    buffers = [bytearray(), bytearray()]
+    limits = [max_stdout, max_stderr]
+    overflow = [False, False]
+    readers = []
+    feeder = None
+    timed_out = False
+    result_code = None
+
+    def read(stream, index):
         try:
             while True:
-                try:
-                    part = _read_once(stream, 65536)
-                except (OSError, ValueError):
+                data = os.read(stream.fileno(), min(65536, max(1, limits[index] + 1 - len(buffers[index]))))
+                if not data:
                     break
-                if not part:
+                buffers[index].extend(data)
+                if len(buffers[index]) > limits[index]:
+                    overflow[index] = True
                     break
-                if kind == "out":
-                    if stdout_len + len(part) > max_stdout:
-                        # Keep one byte over to signal overflow, then stop.
-                        need = max_stdout + 1 - stdout_len
-                        chunks.append(part[: max(need, 0)])
-                        stdout_len += len(chunks[-1])
-                        stdout_over = True
-                        break
-                    chunks.append(part)
-                    stdout_len += len(part)
-                else:
-                    if stderr_len + len(part) > max_stderr:
-                        need = max_stderr + 1 - stderr_len
-                        chunks.append(part[: max(need, 0)])
-                        stderr_len += len(chunks[-1])
-                        stderr_over = True
-                        break
-                    chunks.append(part)
-                    stderr_len += len(part)
-        except OSError:
+        except (OSError, ValueError):
+            pass
+
+    def feed():
+        try:
+            view = memoryview(input_bytes)
+            while view:
+                count = os.write(proc.stdin.fileno(), view)
+                view = view[count:]
+        except (BrokenPipeError, OSError, ValueError):
             pass
         finally:
-            try:
-                stream.close()
-            except OSError:
-                pass
-
-    t_out = threading.Thread(target=_read_stream, args=(proc.stdout, stdout_chunks, "out"), daemon=True)
-    t_err = threading.Thread(target=_read_stream, args=(proc.stderr, stderr_chunks, "err"), daemon=True)
-    assert proc.stdout is not None and proc.stderr is not None
-    t_out.start()
-    t_err.start()
-
-    deadline = start + timeout_seconds
-    exit_code = None
-    # Poll loop: enforce timeout and output limits, including descendants
-    # holding inherited pipes after the immediate parent exits.
-    overflow_kill = False
-    while True:
-        now = time.monotonic()
-        remaining = deadline - now
-        # Prompt output-overflow precedence: kill as soon as any increment
-        # exceeds its limit, before the wall-time deadline is consulted.
-        if stdout_over or stderr_over:
-            _kill_pgid(stored_pgid, proc)
-            overflow_kill = True
-            break
-        rc = proc.poll()
-        readers_done = (not t_out.is_alive()) and (not t_err.is_alive())
-        if rc is not None and readers_done:
-            exit_code = rc
-            break
-        if remaining <= 0:
-            timed_out = True
-            _kill_pgid(stored_pgid, proc)
-            break
-        if rc is not None and not readers_done:
-            # Immediate parent exited but pipes remain open: a descendant
-            # holds inherited write ends. Keep waiting only until the
-            # deadline, then terminate the whole tree above.
-            time.sleep(min(0.02, max(remaining, 0.001)))
-            continue
-        # Sleep briefly (bounded).
-        time.sleep(min(0.02, max(remaining, 0.001)))
-    # Ensure process reaped.
-    try:
-        # Give a short grace after kill, then wait.
-        proc.wait(timeout=5)
-        if timed_out and exit_code is None:
-            exit_code = proc.returncode
-        elif exit_code is None:
-            exit_code = proc.returncode
-    except subprocess.TimeoutExpired:
-        _kill_pgid(stored_pgid, proc)
-        try:
-            proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            pass
-        if timed_out:
-            exit_code = None
-        else:
-            exit_code = proc.returncode if proc.returncode is not None else None
-    # If we killed for overflow, mark timed_out False; exit_code is whatever reaped.
-    # Join readers (bounded). After a tree kill the write ends close and the
-    # incremental readers observe EOF promptly.
-    t_out.join(timeout=5)
-    t_err.join(timeout=5)
-    if t_out.is_alive() or t_err.is_alive():
-        # Force unblock: close parent read ends, then re-join briefly so wall
-        # time stays bounded even if a descendant survived the tree kill.
-        for stream in (proc.stdout, proc.stderr):
-            try:
-                if stream is not None:
-                    stream.close()
-            except OSError:
-                pass
-        t_out.join(timeout=2)
-        t_err.join(timeout=2)
-    feeder.join(timeout=5)
-    # Close pipes defensively.
-    for stream in (proc.stdout, proc.stderr):
-        try:
-            if stream is not None:
-                stream.close()
-        except OSError:
-            pass
-    try:
-        if proc.stdin is not None:
             proc.stdin.close()
-    except OSError:
-        pass
-    stdout_data = b"".join(stdout_chunks)
-    stderr_data = b"".join(stderr_chunks)
-    # If overflow killed, ensure flags set even if race.
-    if len(stdout_data) > max_stdout:
-        stdout_over = True
-        stdout_data = stdout_data[: max_stdout + 1]
-    if len(stderr_data) > max_stderr:
-        stderr_over = True
-        stderr_data = stderr_data[: max_stderr + 1]
-    duration_ms = int((time.monotonic() - start) * 1000)
-    if timed_out:
-        exit_code = None
-    elif overflow_kill:
-        timed_out = False
-    return BoundedResult(
-        exit_code=exit_code,
-        stdout=stdout_data,
-        stderr=stderr_data,
-        stdout_truncated=stdout_over,
-        stderr_truncated=stderr_over,
-        timed_out=timed_out,
-        duration_ms=duration_ms,
-    )
+
+    try:
+        for index, stream in enumerate((proc.stdout, proc.stderr)):
+            thread = threading.Thread(target=read, args=(stream, index), daemon=True)
+            readers.append(thread); thread.start()
+        if input_bytes is not None:
+            feeder = threading.Thread(target=feed, daemon=True); feeder.start()
+        while True:
+            if any(overflow):
+                break
+            result_code = proc.poll()
+            if result_code is not None and not any(t.is_alive() for t in readers):
+                break
+            if time.monotonic() >= deadline:
+                timed_out = True
+                break
+            time.sleep(min(0.005, max(0, deadline - time.monotonic())))
+    finally:
+        # Always terminate residual descendants, even after a successful parent
+        # with redirected pipes. The guardian keeps the identity lock on owner death.
+        try:
+            owner.stop()
+        finally:
+            for thread in readers:
+                thread.join(timeout=1)
+            if feeder is not None:
+                feeder.join(timeout=1)
+            for stream in (proc.stdin, proc.stdout, proc.stderr):
+                if stream is not None:
+                    stream.close()  # unbuffered FileIO: no buffered-reader lock
+            if any(t.is_alive() for t in readers) or (feeder is not None and feeder.is_alive()):
+                raise AcceptorError("CLEANUP_FAILED")
+    if result_code is None:
+        result_code = proc.returncode
+    return BoundedResult(None if timed_out else result_code, bytes(buffers[0]), bytes(buffers[1]),
+                         overflow[0], overflow[1], timed_out, int((time.monotonic() - start) * 1000))
 
 
 def scrubbed_env(extra: dict[str, str]) -> dict[str, str]:

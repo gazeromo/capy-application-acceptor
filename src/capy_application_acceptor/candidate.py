@@ -20,6 +20,8 @@ from .constants import (
     EXECUTION_CONTRACT,
     INTERACTION_CONTRACT,
     MANIFEST_MAX_BYTES,
+    INTERACTION_MAX_BYTES,
+    RECEIPT_MAX_BYTES,
     NULL_EXIT_STAGES,
     OUTER_CANDIDATE_MEMBERS,
     OUTER_MAX_BYTES,
@@ -83,6 +85,8 @@ def _read(payload: bytes) -> Candidate:
                 # Only peek STORED members; DEFLATED/unsupported members are
                 # left for the canonical discipline to reject without reading.
                 if _peek_info is not None and _peek_info.compress_type == zipfile.ZIP_STORED:
+                    if _peek_info.file_size > MANIFEST_MAX_BYTES:
+                        raise _integrity()
                     _raw = _z.read("RELEASE-CANDIDATE.json")
                     _val = json.loads(_raw.decode("utf-8"))
                     if isinstance(_val, dict) and _val.get("schema") == CANDIDATE_SCHEMA_V0:
@@ -117,8 +121,8 @@ def _read(payload: bytes) -> Candidate:
                     raise _integrity()
     except AcceptorError:
         raise
-    except Exception:
-        pass
+    except (zipfile.BadZipFile, OSError, ValueError, KeyError):
+        raise _integrity()
 
     # Canonical outer ZIP discipline (order, metadata, trailing data).
     try:
@@ -135,7 +139,6 @@ def _read(payload: bytes) -> Candidate:
         bundle_bytes = members["toolchain/authoring-bundle.zip"]
     except KeyError:
         raise _integrity()
-    from .constants import INTERACTION_MAX_BYTES, MANIFEST_MAX_BYTES, RECEIPT_MAX_BYTES
 
     if len(manifest_raw) > MANIFEST_MAX_BYTES or len(receipt_raw) > RECEIPT_MAX_BYTES:
         raise _integrity()

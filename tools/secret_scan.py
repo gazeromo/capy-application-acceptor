@@ -1,5 +1,6 @@
 """Bounded worktree and full Git-history scan; print paths and rule names only."""
 import json
+import hashlib
 import re
 import subprocess
 import sys
@@ -11,12 +12,22 @@ RULES = {
 }
 def scan(root):
     findings = []
+    reviewed = []
+    exception_path = Path(__file__).with_name('secret_scan_exceptions.json')
+    exceptions = json.loads(exception_path.read_bytes())['entries'] if exception_path.exists() else []
     count = 0
     def check(label, data):
         nonlocal count
         count += 1
         for rule, pattern in RULES.items():
-            if re.search(pattern, data): findings.append({"object": label, "rule": rule})
+            matches = list(re.finditer(pattern, data))
+            if matches:
+                digest = hashlib.sha256(data).hexdigest()
+                item = {"object": label, "rule": rule}
+                if any(e['sha256']==digest and e['rule']==rule and e['occurrences']==len(matches) for e in exceptions):
+                    reviewed.append({**item, 'sha256':digest, 'occurrences':len(matches)})
+                else:
+                    findings.append(item)
     for path in sorted(root.rglob("*")):
         if path.is_file() and ".git" not in path.relative_to(root).parts:
             check(str(path.relative_to(root)), path.read_bytes())
@@ -26,7 +37,7 @@ def scan(root):
         kind = subprocess.check_output(["git", "cat-file", "-t", oid], cwd=root).strip()
         if kind == b"blob":
             check("git:" + oid, subprocess.check_output(["git", "cat-file", "blob", oid], cwd=root))
-    print(json.dumps({"scanned_objects": count, "findings": findings}, sort_keys=True))
+    print(json.dumps({"scanned_objects": count, "findings": findings, "reviewed_synthetic": reviewed}, sort_keys=True))
     return bool(findings)
 if __name__ == "__main__":
     sys.exit(scan(Path(sys.argv[1] if len(sys.argv)>1 else ".").resolve()))

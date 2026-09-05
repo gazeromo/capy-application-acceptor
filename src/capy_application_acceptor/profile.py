@@ -62,11 +62,11 @@ def _read(payload: bytes) -> Profile:
                 _info = z.getinfo("ACCEPTANCE-PROFILE.json")
             except KeyError:
                 raise _integrity()
-            # Profile document is small in practice (~2 KiB); reject obvious
-            # bombs from metadata without decompressing.
+            # JSON has the complete profile bound; each request has its own
+            # declared bound. Do not invent a smaller document ceiling.
             if _info.compress_type != zipfile.ZIP_STORED:
                 raise _integrity()
-            if _info.file_size == 0 or _info.file_size > 1024 * 1024:
+            if _info.file_size == 0 or _info.file_size > PROFILE_MAX_BYTES:
                 raise _integrity()
             if _info.compress_size > PROFILE_MAX_BYTES:
                 raise _integrity()
@@ -74,7 +74,7 @@ def _read(payload: bytes) -> Profile:
             if "ACCEPTANCE-PROFILE.json" not in loose_names:
                 raise _integrity()
             doc_raw_loose = z.read("ACCEPTANCE-PROFILE.json")
-            if len(doc_raw_loose) > 1024 * 1024:
+            if len(doc_raw_loose) > PROFILE_MAX_BYTES:
                 raise _integrity()
     except AcceptorError:
         raise
