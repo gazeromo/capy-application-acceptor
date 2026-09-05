@@ -52,15 +52,30 @@ def _read(payload: bytes) -> Profile:
         # Entire profile bounded by 32 MiB -> integrity or invalid?
         # Treat as invalid (exceeds bound) per spec "invalid before execution".
         raise _invalid("size")
-    # Loose unpack to find document and expected members.
+    # Loose unpack to find document and expected members. Metadata
+    # boundedness is enforced before any decompression/allocation.
     try:
         with zipfile.ZipFile(io.BytesIO(payload)) as z:
             if z.comment != b"":
+                raise _integrity()
+            try:
+                _info = z.getinfo("ACCEPTANCE-PROFILE.json")
+            except KeyError:
+                raise _integrity()
+            # Profile document is small in practice (~2 KiB); reject obvious
+            # bombs from metadata without decompressing.
+            if _info.compress_type != zipfile.ZIP_STORED:
+                raise _integrity()
+            if _info.file_size == 0 or _info.file_size > 1024 * 1024:
+                raise _integrity()
+            if _info.compress_size > PROFILE_MAX_BYTES:
                 raise _integrity()
             loose_names = z.namelist()
             if "ACCEPTANCE-PROFILE.json" not in loose_names:
                 raise _integrity()
             doc_raw_loose = z.read("ACCEPTANCE-PROFILE.json")
+            if len(doc_raw_loose) > 1024 * 1024:
+                raise _integrity()
     except AcceptorError:
         raise
     except Exception:
@@ -77,6 +92,42 @@ def _read(payload: bytes) -> Profile:
     # Member count bound.
     if len(expected_order) > PROFILE_MAX_MEMBERS:
         raise _invalid("members")
+    # Metadata aggregate boundedness before decompression: reject oversized
+    # fixture/expected declarations without allocating them.
+    try:
+        with zipfile.ZipFile(io.BytesIO(payload)) as _pre:
+            _total_fixture = 0
+            _total_expected = 0
+            _limits = doc["limits"]
+            for _case in doc["cases"]:
+                for _r in _case["resources"]:
+                    try:
+                        _pi = _pre.getinfo(_r["member"])
+                    except KeyError:
+                        continue
+                    if _pi.compress_type != zipfile.ZIP_STORED:
+                        continue
+                    _total_fixture += _pi.file_size
+                    if _total_fixture > _limits["max_fixture_bytes"]:
+                        raise _invalid("max_fixture_bytes")
+                    if _total_fixture > LIMIT_CEILINGS["max_fixture_bytes"]:
+                        raise _invalid("fixture-hard")
+                for _a in _case["expect"]["artifacts"]:
+                    try:
+                        _pi = _pre.getinfo(_a["member"])
+                    except KeyError:
+                        continue
+                    if _pi.compress_type != zipfile.ZIP_STORED:
+                        continue
+                    _total_expected += _pi.file_size
+                    if _total_expected > _limits["max_expected_artifact_bytes"]:
+                        raise _invalid("max_expected_artifact_bytes")
+                    if _total_expected > LIMIT_CEILINGS["max_expected_artifact_bytes"]:
+                        raise _invalid("expected-hard")
+    except AcceptorError:
+        raise
+    except Exception:
+        pass
     # Canonical ZIP check with expected order.
     try:
         members = codec.check_zip_canonical_members(payload, expected_order)
@@ -118,15 +169,17 @@ def _expected_members(doc) -> list[str]:
 
 
 def _validate_document(doc):
-    # Top-level exact keys: unknown -> integrity (malformed).
+    # Top-level exact keys: unknown field is schema-invalid (INVALID);
+    # missing/malformed shape remains integrity failure.
+    _TOP = {
+        "schema", "profile_id", "application_id", "candidate_requirements",
+        "interaction_expectations", "cases", "limits", "non_goals",
+    }
     try:
-        V.require_closed(
-            doc,
-            {"schema", "profile_id", "application_id", "candidate_requirements",
-             "interaction_expectations", "cases", "limits", "non_goals"},
-            "profile",
-        )
+        V.require_closed(doc, _TOP, "profile")
     except ValueError:
+        if isinstance(doc, dict) and (set(doc.keys()) - _TOP):
+            raise _invalid("unknown-field")
         raise _integrity()
     if doc["schema"] != PROFILE_SCHEMA:
         # Wrong schema: malformed? Treat as integrity (or invalid?).
@@ -351,6 +404,9 @@ def _validate_limits(limits):
         raise _integrity()
     for key in LIMIT_KEYS:
         v = limits[key]
+        # Booleans are not integers: schema-invalid limit value.
+        if type(v) is bool:
+            raise _invalid(key)
         if type(v) is not int:
             raise _integrity()
         if v <= 0:
@@ -376,10 +432,13 @@ def _validate_cases(doc):
     all_resource_members: set[str] = set()
     total_fixture = 0
     total_expected = 0
+    _CASE_KEYS = {"case_id", "request", "resources", "expect"}
     for case in cases:
         try:
-            V.require_closed(case, {"case_id", "request", "resources", "expect"}, "case")
+            V.require_closed(case, _CASE_KEYS, "case")
         except ValueError:
+            if isinstance(case, dict) and (set(case.keys()) - _CASE_KEYS):
+                raise _invalid("unknown-field")
             raise _integrity()
         try:
             V.check_case_id(case["case_id"])

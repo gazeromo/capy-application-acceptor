@@ -32,9 +32,34 @@ def _kill_tree(proc: subprocess.Popen):
                 except OSError:
                     pass
         else:
-            proc.kill()
+            # Windows: terminate the whole tree, not only the immediate child.
+            try:
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=5,
+                )
+            except Exception:
+                pass
+            try:
+                proc.kill()
+            except OSError:
+                pass
     except OSError:
         pass
+
+
+def _kill_pgid(pgid: int | None, proc: subprocess.Popen):
+    # Prefer stored pgid so descendants are reaped even after the immediate
+    # parent has exited (getpgid(parent) would then fail).
+    if pgid is not None and os.name == "posix":
+        try:
+            os.killpg(pgid, signal.SIGKILL)
+            return
+        except (ProcessLookupError, PermissionError, OSError):
+            pass
+    _kill_tree(proc)
 
 
 def run_bounded(
@@ -54,6 +79,10 @@ def run_bounded(
     """
     start = time.monotonic()
     # start_new_session detaches process group for portable tree kill on posix.
+    # On Windows create an isolated process group so taskkill /T can reap it.
+    _creationflags = 0
+    if os.name == "nt":
+        _creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
     try:
         proc = subprocess.Popen(
             argv,
@@ -63,9 +92,18 @@ def run_bounded(
             env=env,
             cwd=str(cwd),
             start_new_session=(os.name == "posix"),
+            creationflags=_creationflags,
         )
     except OSError as e:
         raise e
+    # Capture process-group id immediately; after the parent exits getpgid(pid)
+    # fails, but the stored pgid still identifies descendants sharing the group.
+    stored_pgid: int | None = None
+    if os.name == "posix":
+        try:
+            stored_pgid = os.getpgid(proc.pid)
+        except OSError:
+            stored_pgid = None
     stdout_chunks: list[bytes] = []
     stderr_chunks: list[bytes] = []
     stdout_len = 0
@@ -80,7 +118,7 @@ def run_bounded(
         nonlocal stdin_error
         try:
             if input_bytes is not None and proc.stdin is not None:
-                # Write in chunks; stdin sizes are bounded (request ≤64KiB).
+                # Write in chunks; stdin sizes are bounded (request <=64KiB).
                 proc.stdin.write(input_bytes)
                 proc.stdin.close()
             elif proc.stdin is not None:
@@ -96,12 +134,29 @@ def run_bounded(
     feeder = threading.Thread(target=_feed, daemon=True)
     feeder.start()
 
+    def _read_once(stream, n: int) -> bytes:
+        # Incremental prompt read: read1/os.read return available bytes
+        # without waiting for the full request, unlike BufferedReader.read.
+        read1 = getattr(stream, "read1", None)
+        if callable(read1):
+            try:
+                return read1(n)
+            except (OSError, ValueError):
+                raise
+        try:
+            return os.read(stream.fileno(), n)
+        except (OSError, ValueError):
+            raise
+
     # Reader threads for stdout/stderr with bounds.
     def _read_stream(stream, chunks: list, kind: str):
         nonlocal stdout_len, stderr_len, stdout_over, stderr_over
         try:
             while True:
-                part = stream.read(65536)
+                try:
+                    part = _read_once(stream, 65536)
+                except (OSError, ValueError):
+                    break
                 if not part:
                     break
                 if kind == "out":
@@ -139,23 +194,33 @@ def run_bounded(
 
     deadline = start + timeout_seconds
     exit_code = None
-    # Poll loop: enforce timeout and output limits.
+    # Poll loop: enforce timeout and output limits, including descendants
+    # holding inherited pipes after the immediate parent exits.
+    overflow_kill = False
     while True:
         now = time.monotonic()
         remaining = deadline - now
-        rc = proc.poll()
-        # If output overflow detected, kill promptly.
+        # Prompt output-overflow precedence: kill as soon as any increment
+        # exceeds its limit, before the wall-time deadline is consulted.
         if stdout_over or stderr_over:
-            _kill_tree(proc)
-            # Drain: wait briefly for readers to finish (they already broke).
+            _kill_pgid(stored_pgid, proc)
+            overflow_kill = True
             break
-        if rc is not None:
+        rc = proc.poll()
+        readers_done = (not t_out.is_alive()) and (not t_err.is_alive())
+        if rc is not None and readers_done:
             exit_code = rc
             break
         if remaining <= 0:
             timed_out = True
-            _kill_tree(proc)
+            _kill_pgid(stored_pgid, proc)
             break
+        if rc is not None and not readers_done:
+            # Immediate parent exited but pipes remain open: a descendant
+            # holds inherited write ends. Keep waiting only until the
+            # deadline, then terminate the whole tree above.
+            time.sleep(min(0.02, max(remaining, 0.001)))
+            continue
         # Sleep briefly (bounded).
         time.sleep(min(0.02, max(remaining, 0.001)))
     # Ensure process reaped.
@@ -167,7 +232,7 @@ def run_bounded(
         elif exit_code is None:
             exit_code = proc.returncode
     except subprocess.TimeoutExpired:
-        _kill_tree(proc)
+        _kill_pgid(stored_pgid, proc)
         try:
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
@@ -177,9 +242,21 @@ def run_bounded(
         else:
             exit_code = proc.returncode if proc.returncode is not None else None
     # If we killed for overflow, mark timed_out False; exit_code is whatever reaped.
-    # Join readers (bounded).
+    # Join readers (bounded). After a tree kill the write ends close and the
+    # incremental readers observe EOF promptly.
     t_out.join(timeout=5)
     t_err.join(timeout=5)
+    if t_out.is_alive() or t_err.is_alive():
+        # Force unblock: close parent read ends, then re-join briefly so wall
+        # time stays bounded even if a descendant survived the tree kill.
+        for stream in (proc.stdout, proc.stderr):
+            try:
+                if stream is not None:
+                    stream.close()
+            except OSError:
+                pass
+        t_out.join(timeout=2)
+        t_err.join(timeout=2)
     feeder.join(timeout=5)
     # Close pipes defensively.
     for stream in (proc.stdout, proc.stderr):
@@ -205,6 +282,8 @@ def run_bounded(
     duration_ms = int((time.monotonic() - start) * 1000)
     if timed_out:
         exit_code = None
+    elif overflow_kill:
+        timed_out = False
     return BoundedResult(
         exit_code=exit_code,
         stdout=stdout_data,

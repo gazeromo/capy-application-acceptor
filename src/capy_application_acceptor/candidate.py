@@ -19,6 +19,7 @@ from .constants import (
     EXPECTED_STAGE_ORDER,
     EXECUTION_CONTRACT,
     INTERACTION_CONTRACT,
+    MANIFEST_MAX_BYTES,
     NULL_EXIT_STAGES,
     OUTER_CANDIDATE_MEMBERS,
     OUTER_MAX_BYTES,
@@ -69,19 +70,51 @@ def _read(payload: bytes) -> Candidate:
 
     # Fast path for historical v0: peek loosely before canonical checks.
     # If manifest schema is v0, report version error (spec requires this
-    # even for the four-member public vector).
+    # even for the four-member public vector). ZipInfo metadata is checked
+    # before decompression so a DEFLATED bomb is not expanded here; the
+    # canonical check below rejects it without a large allocation.
     try:
         with zipfile.ZipFile(io.BytesIO(payload)) as _z:
             if "RELEASE-CANDIDATE.json" in _z.namelist():
                 try:
+                    _peek_info = _z.getinfo("RELEASE-CANDIDATE.json")
+                except KeyError:
+                    _peek_info = None
+                # Only peek STORED members; DEFLATED/unsupported members are
+                # left for the canonical discipline to reject without reading.
+                if _peek_info is not None and _peek_info.compress_type == zipfile.ZIP_STORED:
                     _raw = _z.read("RELEASE-CANDIDATE.json")
                     _val = json.loads(_raw.decode("utf-8"))
                     if isinstance(_val, dict) and _val.get("schema") == CANDIDATE_SCHEMA_V0:
                         raise AcceptorError("RELEASE_CANDIDATE_VERSION_UNSUPPORTED", "version")
-                except AcceptorError:
-                    raise
-                except Exception:
-                    pass
+    except AcceptorError:
+        raise
+    except Exception:
+        pass
+
+    # Metadata boundedness before outer decompression: reject oversized
+    # STORED declarations without allocating them.
+    try:
+        from .constants import INTERACTION_MAX_BYTES as _IMAX
+        from .constants import RECEIPT_MAX_BYTES as _RMAX
+
+        with zipfile.ZipFile(io.BytesIO(payload)) as _pre:
+            _bounds = {
+                "RELEASE-CANDIDATE.json": MANIFEST_MAX_BYTES,
+                "application/interaction.json": _IMAX,
+                "evidence/verification.json": _RMAX,
+                "application/application.zip": APP_ZIP_MAX_BYTES,
+                "toolchain/authoring-bundle.zip": BUNDLE_MAX_BYTES,
+            }
+            for _name, _bound in _bounds.items():
+                try:
+                    _pi = _pre.getinfo(_name)
+                except KeyError:
+                    continue
+                if _pi.compress_type != zipfile.ZIP_STORED:
+                    continue
+                if _pi.file_size > _bound:
+                    raise _integrity()
     except AcceptorError:
         raise
     except Exception:
@@ -507,8 +540,11 @@ def _validate_receipt(receipt, manifest, app_zip_bytes: bytes, outer_canonical: 
         if receipt["verified_at"] != manifest["verified_at"]:
             raise ValueError("verified_at-match")
         V.check_verified_at(receipt["verified_at"])
-        # application_archive matches.
+        # application_archive matches. Precise integer types: booleans
+        # are not integers; float/int equality must not pass.
         V.require_closed(receipt["application_archive"], {"sha256", "size_bytes"}, "receipt.archive")
+        if type(receipt["application_archive"]["size_bytes"]) is not int:
+            raise ValueError("receipt.archive-size-type")
         if (receipt["application_archive"]["sha256"] != manifest["application"]["archive"]["sha256"]
                 or receipt["application_archive"]["size_bytes"] != manifest["application"]["archive"]["size_bytes"]):
             raise ValueError("receipt.archive-match")
@@ -521,6 +557,8 @@ def _validate_receipt(receipt, manifest, app_zip_bytes: bytes, outer_canonical: 
         )
         mi = manifest["application"]["interaction"]
         ri = receipt["interaction_contract"]
+        if type(ri["canonical_size_bytes"]) is not int:
+            raise ValueError("receipt.canonical-size-type")
         if (ri["canonical_sha256"] != mi["sha256"] or ri["canonical_size_bytes"] != mi["size_bytes"]
                 or ri["operation_id"] != mi["operation_id"] or ri["schema"] != mi["schema"]
                 or ri["source_member"] != mi["source_member"] or ri["source_sha256"] != mi["source_sha256"]):
@@ -620,6 +658,11 @@ def _validate_stage(stage, app_zip_bytes: bytes, outer_canonical: bytes, inner_r
     elif name == "package_compare":
         if set(facts) != {"sha256_a", "sha256_b", "size_a", "size_b"}:
             raise _integrity()
+        # Strict integer types before equality: booleans are not integers
+        # and 1.0 must not equal 1.
+        for k in ("size_a", "size_b"):
+            if type(facts[k]) is not int or facts[k] < 0:
+                raise _integrity()
         if (facts["sha256_a"] != app_sha or facts["sha256_b"] != app_sha
                 or facts["size_a"] != app_size or facts["size_b"] != app_size):
             raise _integrity()
@@ -628,17 +671,18 @@ def _validate_stage(stage, app_zip_bytes: bytes, outer_canonical: bytes, inner_r
                 V.check_hex64(facts[k], k)
             except ValueError:
                 raise _integrity()
-        for k in ("size_a", "size_b"):
-            if type(facts[k]) is not int or facts[k] < 0:
-                raise _integrity()
     elif name == "archive_preserve":
         if set(facts) != {"sha256", "size_bytes"}:
+            raise _integrity()
+        if type(facts["size_bytes"]) is not int or facts["size_bytes"] < 0:
             raise _integrity()
         if facts["sha256"] != app_sha or facts["size_bytes"] != app_size:
             raise _integrity()
     elif name == "interaction_preserve":
         if set(facts) != {"candidate_unchanged", "canonical_sha256", "canonical_size_bytes",
                            "source_sha256", "timed_out"}:
+            raise _integrity()
+        if type(facts["canonical_size_bytes"]) is not int or facts["canonical_size_bytes"] < 0:
             raise _integrity()
         if (facts["candidate_unchanged"] is not True or facts["timed_out"] is not False
                 or facts["canonical_sha256"] != outer_sha
@@ -650,8 +694,28 @@ def _validate_stage(stage, app_zip_bytes: bytes, outer_canonical: bytes, inner_r
 
 
 def _validate_toolchain(bundle_bytes: bytes, manifest) -> bytes:
-    # Actual bundle hash already checked vs declared (toolchain integrity).
-    # Now inspect bundle contents.
+    # Fixed trusted bundle validation before any inner decompression.
+    # Retains causal classifications: corrupt bytes already raised integrity
+    # in _check_member_binding; self-consistent but unapproved is untrusted.
+    try:
+        _mt = manifest["toolchain"]
+        if (
+            _mt["release_binding_commit"] != TRUSTED_RELEASE_BINDING_COMMIT
+            or _mt["wheel_sha256"] != TRUSTED_WHEEL_SHA256
+            or _mt["authoring_bundle"]["sha256"] != TRUSTED_BUNDLE_SHA256
+            or _mt["implementation_commit"] != TRUSTED_IMPLEMENTATION_COMMIT
+            or _mt["wheel_filename"] != TRUSTED_WHEEL_FILENAME
+            or _mt["interaction_contract"] != INTERACTION_CONTRACT
+        ):
+            raise _untrusted()
+        if hashlib.sha256(bundle_bytes).hexdigest() != TRUSTED_BUNDLE_SHA256:
+            raise _toolchain_integrity()
+    except AcceptorError:
+        raise
+    except Exception:
+        raise _toolchain_integrity()
+    # Now inspect bundle contents, enforcing expanded-size bounds from
+    # ZipInfo metadata before any inner decompression/allocation.
     try:
         with zipfile.ZipFile(io.BytesIO(bundle_bytes)) as z:
             names = z.namelist()
@@ -664,9 +728,33 @@ def _validate_toolchain(bundle_bytes: bytes, manifest) -> bytes:
                     wheel_name = n
             if wheel_name is None:
                 raise _toolchain_integrity()
+            # Trusted filename check before reads (no decompression needed).
+            if wheel_name != f"wheel/{TRUSTED_WHEEL_FILENAME}":
+                if _mt["wheel_filename"] not in wheel_name:
+                    raise _toolchain_integrity()
+                raise _untrusted()
+            try:
+                _mi = z.getinfo("RELEASE-MANIFEST.json")
+                _wi = z.getinfo(wheel_name)
+            except KeyError:
+                raise _toolchain_integrity()
+            if _mi.file_size > MANIFEST_MAX_BYTES or _mi.file_size == 0:
+                raise _toolchain_integrity()
+            if _mi.compress_size > BUNDLE_MAX_BYTES:
+                raise _toolchain_integrity()
+            if _wi.file_size > BUNDLE_MAX_BYTES or _wi.file_size == 0:
+                raise _toolchain_integrity()
+            if _wi.compress_size > BUNDLE_MAX_BYTES:
+                raise _toolchain_integrity()
             try:
                 manifest_raw = z.read("RELEASE-MANIFEST.json")
+                if len(manifest_raw) > MANIFEST_MAX_BYTES:
+                    raise _toolchain_integrity()
                 wheel_bytes = z.read(wheel_name)
+                if len(wheel_bytes) > BUNDLE_MAX_BYTES:
+                    raise _toolchain_integrity()
+            except AcceptorError:
+                raise
             except KeyError:
                 raise _toolchain_integrity()
     except AcceptorError:

@@ -59,12 +59,14 @@ def parse_success_envelope(stdout: bytes) -> tuple[dict | None, str | None]:
     if not line:
         return None, "empty-line"
     try:
-        text = line.decode("utf-8")
+        line.decode("utf-8")
     except UnicodeDecodeError:
         return None, "unicode"
+    # Strict JSON: reject duplicate keys, nonfinite values, bad Unicode,
+    # excessive depth and other malformed JSON before semantic comparison.
     try:
-        envelope = json.loads(text)
-    except (json.JSONDecodeError, ValueError):
+        envelope = codec.parse_strict_json(line)
+    except ValueError:
         return None, "json"
     if not isinstance(envelope, dict) or "artifacts" not in envelope:
         return None, "envelope"
@@ -123,6 +125,7 @@ def classify_case(
     observed_result,
     observed_failure_code: str | None,
     observed_status: str,
+    artifact_anomaly: str | None = None,
 ) -> str:
     """Return classification in causal precedence."""
     if secret_hit:
@@ -137,6 +140,11 @@ def classify_case(
         return "REJECTED_APPLICATION_EXIT"
     if observed_status == "error":
         return "REJECTED_APPLICATION_EXIT"
+    # Every extra/undeclared output, dotfile, unsafe name, directory, or
+    # symlink must be rejected for successful and failed cases, without
+    # exposing unsafe names in portable evidence (already filtered).
+    if artifact_anomaly is not None:
+        return "REJECTED_ARTIFACT_SET_MISMATCH"
     # Now observed is ok or failed with valid envelope.
     if expect["status"] == "ok" and observed_status == "failed":
         return "REJECTED_RESULT_MISMATCH"

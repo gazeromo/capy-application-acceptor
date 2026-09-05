@@ -101,20 +101,36 @@ def pip_install_wheel(*, venv_python: Path, wheel_path: Path, setup_env: dict):
         raise _env_unavailable()
 
 
-def collect_artifacts(output_dir: Path):
-    """Collect output files safely. Returns (artifacts list, anomaly flag)."""
+def collect_artifacts(output_dir: Path, max_total_bytes: int | None = None):
+    """Collect output files safely. Returns (artifacts list, anomaly flag).
+
+    Every extra/undeclared output, dotfile, unsafe name, directory, or
+    symlink is reported via a non-None anomaly so callers reject. Unsafe
+    names are never returned in the artifact list (not projected). Reads
+    are incremental and bounded by the aggregate limit (+1 to detect
+    overflow) without ever retaining unbounded files.
+    """
+    from .constants import LIMIT_CEILINGS
+
     artifacts: list[tuple[str, bytes]] = []
     anomaly = None
     try:
         entries = list(output_dir.iterdir())
     except OSError:
         return [], "missing-output"
-    for entry in entries:
-        # Ignore dotfiles like DevKit runner? DevKit ignores dotfiles starting with ".".
-        # We follow same: ignore dotfiles for artifact set (they are not declared).
-        # But if dotfile is symlink etc, ignore? Keep simple: ignore dotfiles.
+    budget = (max_total_bytes if max_total_bytes is not None else LIMIT_CEILINGS["max_total_artifact_bytes"]) + 1
+    if budget < 0:
+        budget = 0
+    total = 0
+    for entry in sorted(entries, key=lambda e: e.name):
+        # Dotfiles are extra/undeclared outputs and must be rejected;
+        # they are never projected.
         if entry.name.startswith("."):
-            # If it's a symlink or unexpected, still ignore (not projected).
+            try:
+                # Record anomaly even if it is a symlink/dir; do not expose.
+                anomaly = "dotfile"
+            except OSError:
+                anomaly = "dotfile"
             continue
         try:
             if entry.is_symlink():
@@ -123,13 +139,37 @@ def collect_artifacts(output_dir: Path):
             if not entry.is_file():
                 anomaly = "non-file"
                 continue
-            # Unsafe names are not projected (spec).
+            # Unsafe names are not projected (spec) but must be rejected.
             if not codec.is_safe_basename(entry.name):
                 anomaly = "unsafe-name"
                 continue
             # Path escaping already prevented (we only list direct children).
-            # Reject subdirectories (non-file already).
-            data = entry.read_bytes()
+            # Incremental bounded read enforcing the aggregate budget.
+            if total >= budget:
+                # Budget already exhausted: further safe files are beyond the
+                # retained prefix and only extend the overflow. Skip retention
+                # while still reporting anomalies for non-safe names above.
+                continue
+            chunks: list[bytes] = []
+            try:
+                with open(entry, "rb") as f:
+                    while True:
+                        remaining = budget - total
+                        if remaining <= 0:
+                            break
+                        part = f.read(min(65536, remaining))
+                        if not part:
+                            break
+                        chunks.append(part)
+                        total += len(part)
+                        if total >= budget:
+                            # Budget exhausted (limit+1 retained); discard
+                            # the remainder without further allocation.
+                            break
+            except OSError:
+                anomaly = "read-error"
+                continue
+            data = b"".join(chunks)
             artifacts.append((entry.name, data))
         except OSError:
             anomaly = "read-error"
@@ -253,17 +293,20 @@ def run_one_case(
     # If output limited, we killed; keep bounded prefix for scanning (bounded).
     # Collect artifacts (before cleanup) even on failure? Spec says every declared
     # artifact collected before cleanup; for failures, no artifacts expected.
-    artifacts, anomaly = collect_artifacts(output_dir)
+    # Bounded collection enforces the aggregate limit during reads (+1 to
+    # detect overflow) with causal evidence via total_bytes.
+    artifacts, anomaly = collect_artifacts(output_dir, max_total_artifacts)
     # Check total artifact bytes vs max_total.
     total_bytes = sum(len(b) for _, b in artifacts)
     if total_bytes > max_total_artifacts:
         output_limited = True
     # Secret scan of bounded outputs/artifacts (defense in depth).
+    # Scan all permitted artifact bytes (retained prefix is already bounded
+    # to limit+1 total, up to 8 MiB).
     secret_hit = False
     scan_blobs: list[bytes] = [stdout[: max_stdout + 1], stderr[: max_stderr + 1]]
     for _, data in artifacts:
-        # Bound artifact scan to first 1MiB per file? Scan all (artifacts bounded by 8MiB total).
-        scan_blobs.append(data[: 1024 * 1024 + 1] if len(data) > 1024 * 1024 + 1 else data)
+        scan_blobs.append(data)
     from .scan import scan_many
 
     if scan_many(scan_blobs):
@@ -284,10 +327,11 @@ def run_one_case(
                 # parsed is result without artifacts; declared is list from envelope.
                 # Need to re-parse to get declared: parse_success_envelope already popped?
                 # Actually it returns result without artifacts; we lost declared.
-                # Re-extract declared from stdout.
+                # Re-extract declared from stdout strictly (duplicates/
+                # nonfinite already rejected by parse_success_envelope).
                 try:
-                    env_full = json.loads(stdout[:-1].decode("utf-8"))
-                    declared_list = env_full.get("artifacts", [])
+                    env_full = codec.parse_strict_json(stdout[:-1])
+                    declared_list = env_full.get("artifacts", []) if isinstance(env_full, dict) else None
                 except Exception:
                     declared_list = None
                     envelope_error = "envelope"

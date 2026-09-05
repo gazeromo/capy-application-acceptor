@@ -286,7 +286,8 @@ def _trial(candidate, profile, release, work_root: Path, created: list) -> Evalu
         if observed_entry["status"] == "error":
             observed_entry["result_sha256"] = None
             observed_entry["failure_code"] = None
-        # Classify with precedence.
+        # Classify with precedence. Filesystem anomalies (extra/dotfile/
+        # unsafe/dir/symlink) reject for successful and failed cases.
         classification = classify_case(
             expect=case["expect"],
             timed_out=bool(raw.get("timed_out")),
@@ -300,6 +301,7 @@ def _trial(candidate, profile, release, work_root: Path, created: list) -> Evalu
             observed_result=raw.get("observed_result"),
             observed_failure_code=raw.get("observed_failure_code"),
             observed_status=raw.get("observed_status", "error"),
+            artifact_anomaly=raw.get("artifact_anomaly"),
         )
         matched = classification == "CASE_MATCHED"
         proj = build_case_projection(
