@@ -1,6 +1,7 @@
 """Fresh offline installed-wheel journeys, copied oracle and original vectors."""
 import argparse
 import copy
+from contextlib import closing
 import importlib.util
 import json
 import os
@@ -52,7 +53,7 @@ def qualify(output):
             check(sys.platform=='darwin','unqualified CI platform')
             refusal,_=command(['accept','--candidate',str(FIX/'mean.capyrc'),'--profile',str(FIX/'csv-mean.capya')],2)
             check(refusal['code']=='EXECUTION_CONTAINMENT_UNAVAILABLE','macOS fail closed')
-            with sqlite3.connect(Path(env['CAPY_ACCEPTOR_DATA_ROOT'])/'acceptor.sqlite3') as db:
+            with closing(sqlite3.connect(Path(env['CAPY_ACCEPTOR_DATA_ROOT'])/'acceptor.sqlite3')) as db:
                 aid=db.execute('SELECT acceptance_id FROM attempts').fetchone()[0]
             inspected,_=command(['acceptance','inspect','--acceptance-id',aid])
             check(inspected['status']=='FAILED' and inspected['document'] is None,'macOS receipt withheld')
@@ -136,7 +137,7 @@ print(hashlib.sha256(data).hexdigest())
                 dbpath=Path(other_env['CAPY_ACCEPTOR_DATA_ROOT'])/'acceptor.sqlite3'
                 if dbpath.is_file():
                     try:
-                        with sqlite3.connect(dbpath) as db: row=db.execute("SELECT acceptance_id FROM events WHERE kind='case_started' LIMIT 1").fetchone()
+                        with closing(sqlite3.connect(dbpath)) as db: row=db.execute("SELECT acceptance_id FROM events WHERE kind='case_started' LIMIT 1").fetchone()
                         if row:aid=row[0];break
                     except sqlite3.Error:pass
                 time.sleep(.02)
