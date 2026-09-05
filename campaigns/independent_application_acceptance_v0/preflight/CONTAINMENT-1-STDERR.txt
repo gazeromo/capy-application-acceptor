@@ -1,0 +1,2 @@
+muse: workspace root: /Users/gazeromo/dev/capy-application-acceptor (explicit)
+muse: workspace trust: trusted source=run-flag

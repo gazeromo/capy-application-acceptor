@@ -1,0 +1,21 @@
+{
+  "classification": "MUSE_SANDBOX_UNAVAILABLE",
+  "containment_probe_count": 3,
+  "contributor_assessment": "not_evaluated",
+  "deployment": false,
+  "identity_probe_count": 1,
+  "implementation_run_count": 0,
+  "independent_preflight_review": "ACCEPT",
+  "meaning": "required campaign read/write boundary not demonstrated by installed configuration; some containment remains enforced",
+  "muse_version": "1.0.3 (1.0.3-R2198.1)",
+  "next_step": "repair or provide supported required containment, rerun exact model and sandbox preflight, then continue frozen scaffold/oracle and Muse contribution",
+  "observed_model": "muse-spark-1.3-contributor",
+  "outer_identity": "gpt-6-astra/xhigh",
+  "product_outcome": "blocked_before_implementation",
+  "production_changes": false,
+  "publication": false,
+  "requested_model": "muse-spark-1.3-contributor",
+  "runtime_changes": false,
+  "schema": "capy.independent-acceptance-preflight-result/v0",
+  "status": "BLOCKED"
+}

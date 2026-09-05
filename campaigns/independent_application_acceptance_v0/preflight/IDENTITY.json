@@ -1,0 +1,171 @@
+{
+  "configuration": {
+    "args": [
+      "/Users/gazeromo/.local/bin/muse",
+      "exec",
+      "--json",
+      "--model",
+      "muse-spark-1.3-contributor",
+      "--reasoning-effort",
+      "xhigh",
+      "--disable-approval",
+      "--approval-judge",
+      "off",
+      "--trust-workspace",
+      "--no-foreign-personal-context",
+      "--disable-web-tools",
+      "--disable-shell",
+      "--disable-write",
+      "--max-model-steps",
+      "2",
+      "--session-id",
+      "22edbfcb-eb3b-402d-8da9-09920550064d",
+      "--workspace",
+      "/Users/gazeromo/dev/capy-application-acceptor",
+      "Read-only harness identity preflight. Do not invoke tools, inspect files, access personal context, spawn subagents, or do implementation. Reply only: CAPY_MUSE_IDENTITY_PROBE_OK. Your self-reported model identity is not requested."
+    ],
+    "binary_sha256": "4c0f960028b603174af7df7bd5051d8c35d6c1aa372a37d18bc770926a0577a7",
+    "launcher_sha256": "21c66e550a71cac2e4af081cc33d10bec81993d0043ec492761fc449e6c440f6",
+    "session_id": "22edbfcb-eb3b-402d-8da9-09920550064d",
+    "version": "Muse Code 1.0.3 (1.0.3-R2198.1)"
+  },
+  "exit": {
+    "binary_unchanged": true,
+    "exit_code": 0,
+    "launcher_unchanged": true
+  },
+  "export_publication": "withheld: may contain encrypted reasoning; durable permission and tool facts projected here",
+  "local_export_bytes": 180545,
+  "local_export_sha256": "99c3722ff68cd67c558885757f5c091eb0865eb2391d6427fb453ea85fcb96a8",
+  "observed_response_models": [
+    "muse-spark-1.3-contributor"
+  ],
+  "permissions": [
+    {
+      "actor": {
+        "id": null,
+        "kind": "runtime"
+      },
+      "cause": "launch_overrides",
+      "command": null,
+      "definition_sha256": "sha256:[redacted]",
+      "managed_ancestor_sha256": [],
+      "managed_enforcement": {
+        "backend_id": "legacy-v1",
+        "component_ceilings": {
+          "approval": [
+            "on_request",
+            "prompt_unmatched",
+            "allow_all"
+          ],
+          "filesystem_modes": [
+            "managed",
+            "unrestricted"
+          ],
+          "network_modes": [
+            "restricted",
+            "proxy_only",
+            "enabled"
+          ],
+          "reviewer": [
+            "human",
+            "auto_review",
+            "none"
+          ]
+        },
+        "constraint_epoch": 0,
+        "constraint_sha256": "sha256:[redacted]",
+        "filesystem_rules": [],
+        "managed_targets_only": false,
+        "network_targets": [],
+        "platform": "macos",
+        "schema_version": 1,
+        "unix_sockets": []
+      },
+      "pending_action_cancellations": [],
+      "permission_epoch": 1,
+      "resolved_snapshot": {
+        "approval": "allow_all",
+        "filesystem": {
+          "minimal_runtime_set_version": 1,
+          "mode": "managed",
+          "protected_metadata": true,
+          "rules": [
+            {
+              "access": "read",
+              "subject": {
+                "kind": "special",
+                "value": ":minimal"
+              }
+            },
+            {
+              "access": "read",
+              "subject": {
+                "kind": "special",
+                "value": ":root"
+              }
+            },
+            {
+              "access": "write",
+              "subject": {
+                "kind": "special",
+                "value": ":runtime_temp"
+              }
+            },
+            {
+              "access": "write",
+              "subject": {
+                "kind": "special",
+                "value": ":slash_tmp"
+              }
+            },
+            {
+              "access": "write",
+              "subject": {
+                "kind": "special",
+                "value": ":tmpdir"
+              }
+            },
+            {
+              "access": "write",
+              "subject": {
+                "kind": "special",
+                "value": ":workspace_roots"
+              }
+            }
+          ],
+          "workspace_roots": []
+        },
+        "local_command_network": {
+          "mode": "proxy_only",
+          "targets": [],
+          "unix_sockets": []
+        },
+        "reviewer": "none",
+        "schema_version": 1
+      },
+      "resulting_snapshot_sha256": "sha256:[redacted]",
+      "schema_version": 1,
+      "source": {
+        "display_name": "Launch overrides",
+        "id": null,
+        "kind": "launch_overrides"
+      }
+    }
+  ],
+  "raw_events_sha256": "63ca35429ae1c4878b80f719c37154b08458967f17e75a8d5cb8fdc1d23cee66",
+  "terminals": [
+    {
+      "command_id": "21e918f1-c648-4400-95a7-0f25d06a04ef",
+      "kind": "run_terminal",
+      "reason": null,
+      "run_stream": {
+        "id": "21e918f1-c648-4400-95a7-0f25d06a04ef",
+        "kind": "run"
+      },
+      "terminal": "completed",
+      "text": "CAPY_MUSE_IDENTITY_PROBE_OK"
+    }
+  ],
+  "tools": []
+}

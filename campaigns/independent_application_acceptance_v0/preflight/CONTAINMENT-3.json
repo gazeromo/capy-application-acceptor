@@ -1,0 +1,211 @@
+{
+  "configuration": {
+    "args": [
+      "/Users/gazeromo/.local/bin/muse",
+      "exec",
+      "--json",
+      "--model",
+      "muse-spark-1.3-contributor",
+      "--reasoning-effort",
+      "xhigh",
+      "--permission-profile",
+      "capy-contributor",
+      "--trust-workspace",
+      "--no-foreign-personal-context",
+      "--disable-web-tools",
+      "--max-model-steps",
+      "5",
+      "--session-id",
+      "50778baa-52e2-4d94-84a4-629c4a671bec",
+      "--workspace",
+      "/Users/gazeromo/dev/capy-application-acceptor",
+      "--enable-shell-tool",
+      "This is a synthetic sandbox preflight, not an implementation run. Run exactly one shell command: python3 tools/probe_muse_containment.py . Then report its JSON result and stop. The script attempts only synthetic task-owned canaries and an empty TCP connectivity probe, never private data. Do not inspect other files, personal context, parent directories, or credentials. Do not change files except through this exact script. Do not spawn subagents, use other tools, disable the sandbox, or request broader permissions. If the command cannot run, report the actual error and stop."
+    ],
+    "binary_sha256": "4c0f960028b603174af7df7bd5051d8c35d6c1aa372a37d18bc770926a0577a7",
+    "launcher_sha256": "21c66e550a71cac2e4af081cc33d10bec81993d0043ec492761fc449e6c440f6",
+    "profile": {
+      "permissions": {
+        "profiles": {
+          "capy-contributor": {
+            "approval": "allow_all",
+            "filesystem": {
+              "/Users/gazeromo": "deny",
+              "/Users/gazeromo/dev/capy-application-acceptor": "write",
+              "/opt/homebrew": "read",
+              ":minimal": "read",
+              ":root": "deny",
+              ":runtime_temp": "write"
+            },
+            "network": {
+              "mode": "restricted"
+            },
+            "reviewer": "none",
+            "workspace_roots": {
+              "/Users/gazeromo/dev/capy-application-acceptor": true
+            }
+          }
+        },
+        "schema_version": 1
+      },
+      "schema_version": 1
+    },
+    "session_id": "50778baa-52e2-4d94-84a4-629c4a671bec"
+  },
+  "exit": {
+    "binary_unchanged": true,
+    "exit_code": 0,
+    "launcher_unchanged": true
+  },
+  "export_publication": "withheld: may contain encrypted reasoning; durable permission and tool facts projected here",
+  "local_export_bytes": 257974,
+  "local_export_sha256": "c105efe41ffcc3259cafbcd91e30ee7c9635619d4bc05eeb4157144e56f6577a",
+  "observed_response_models": [
+    "muse-spark-1.3-contributor"
+  ],
+  "permissions": [
+    {
+      "actor": {
+        "id": null,
+        "kind": "runtime"
+      },
+      "cause": "launch_cli",
+      "command": null,
+      "definition_sha256": "sha256:[redacted]",
+      "managed_ancestor_sha256": [],
+      "managed_enforcement": {
+        "backend_id": "legacy-v1",
+        "component_ceilings": {
+          "approval": [
+            "on_request",
+            "prompt_unmatched",
+            "allow_all"
+          ],
+          "filesystem_modes": [
+            "managed",
+            "unrestricted"
+          ],
+          "network_modes": [
+            "restricted",
+            "proxy_only",
+            "enabled"
+          ],
+          "reviewer": [
+            "human",
+            "auto_review",
+            "none"
+          ]
+        },
+        "constraint_epoch": 0,
+        "constraint_sha256": "sha256:[redacted]",
+        "filesystem_rules": [],
+        "managed_targets_only": false,
+        "network_targets": [],
+        "platform": "macos",
+        "schema_version": 1,
+        "unix_sockets": []
+      },
+      "pending_action_cancellations": [],
+      "permission_epoch": 1,
+      "resolved_snapshot": {
+        "approval": "allow_all",
+        "filesystem": {
+          "minimal_runtime_set_version": 1,
+          "mode": "managed",
+          "protected_metadata": true,
+          "rules": [
+            {
+              "access": "read",
+              "subject": {
+                "kind": "special",
+                "value": ":minimal"
+              }
+            },
+            {
+              "access": "deny",
+              "subject": {
+                "kind": "special",
+                "value": ":root"
+              }
+            },
+            {
+              "access": "write",
+              "subject": {
+                "kind": "special",
+                "value": ":runtime_temp"
+              }
+            },
+            {
+              "access": "deny",
+              "subject": {
+                "kind": "absolute",
+                "value": "/Users/gazeromo"
+              }
+            },
+            {
+              "access": "write",
+              "subject": {
+                "kind": "absolute",
+                "value": "/Users/gazeromo/dev/capy-application-acceptor"
+              }
+            },
+            {
+              "access": "read",
+              "subject": {
+                "kind": "absolute",
+                "value": "/opt/homebrew"
+              }
+            }
+          ],
+          "workspace_roots": [
+            "/Users/gazeromo/dev/capy-application-acceptor"
+          ]
+        },
+        "local_command_network": {
+          "mode": "restricted",
+          "targets": [],
+          "unix_sockets": []
+        },
+        "reviewer": "none",
+        "schema_version": 1
+      },
+      "resulting_snapshot_sha256": "sha256:[redacted]",
+      "schema_version": 1,
+      "source": {
+        "display_name": "capy-contributor",
+        "id": "capy-contributor",
+        "kind": "user_named"
+      }
+    }
+  ],
+  "raw_events_sha256": "b13b7daec5ebfaeb78df3a53e8a3d8db6af2f8be04748895e6687772b971067d",
+  "terminals": [
+    {
+      "command_id": "780f64d9-98a4-4353-8f25-1081e8846770",
+      "kind": "run_terminal",
+      "reason": null,
+      "run_stream": {
+        "id": "780f64d9-98a4-4353-8f25-1081e8846770",
+        "kind": "run"
+      },
+      "terminal": "completed",
+      "text": "Probe result:\n\n```json\n{\"git_write\": {\"allowed\": false, \"errno\": 1, \"exception\": \"PermissionError\"}, \"outside_read\": {\"allowed\": true}, \"outside_write\": {\"allowed\": false, \"errno\": 1, \"exception\": \"PermissionError\"}, \"shell_network\": {\"allowed\": false, \"errno\": 1, \"exception\": \"PermissionError\"}, \"workspace_write\": {\"allowed\": false, \"errno\": 1, \"exception\": \"PermissionError\"}}\n```\n"
+    }
+  ],
+  "tools": [
+    {
+      "call_id": "call_01a070a20c3b7183bc41fb801e233c60",
+      "command_id": "780f64d9-98a4-4353-8f25-1081e8846770",
+      "correlation_facts": {
+        "outcome": "success",
+        "tool_name": "shell"
+      },
+      "kind": "tool_result",
+      "run_stream": {
+        "id": "780f64d9-98a4-4353-8f25-1081e8846770",
+        "kind": "run"
+      },
+      "text": "{\"git_write\": {\"allowed\": false, \"errno\": 1, \"exception\": \"PermissionError\"}, \"outside_read\": {\"allowed\": true}, \"outside_write\": {\"allowed\": false, \"errno\": 1, \"exception\": \"PermissionError\"}, \"shell_network\": {\"allowed\": false, \"errno\": 1, \"exception\": \"PermissionError\"}, \"workspace_write\": {\"allowed\": false, \"errno\": 1, \"exception\": \"PermissionError\"}}\n"
+    }
+  ]
+}
