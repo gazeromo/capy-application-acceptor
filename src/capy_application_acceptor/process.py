@@ -120,8 +120,8 @@ class _Owner:
             try:
                 if os.name == "posix" and self.proc.poll() is None:
                     os.killpg(self.proc.pid, signal.SIGKILL)
-                elif os.name == "nt" and self.proc.poll() is None:
-                    self.proc.kill()
+                # Windows Job termination already requested every process exit;
+                # a second TerminateProcess can race with asynchronous teardown.
             except ProcessLookupError:
                 pass
             except OSError:

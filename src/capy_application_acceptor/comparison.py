@@ -91,9 +91,13 @@ def parse_failure_stderr(stderr: bytes) -> tuple[str | None, str | None]:
     if len(lines) != 2 or lines[1] != b"":
         return None, "multiple"
     try:
-        text = lines[0].decode("utf-8")
+        # Native Windows text streams terminate their one line with CRLF.
+        # Remove exactly that framing CR, never embedded control characters.
+        text = lines[0].removesuffix(b"\r").decode("utf-8")
     except UnicodeDecodeError:
         return None, "unicode"
+    if "\r" in text or "\x00" in text:
+        return None, "format"
     if not text.strip():
         return None, "empty-line"
     # Code optionally followed by colon-space and bounded safe detail.

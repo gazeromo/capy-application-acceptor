@@ -151,6 +151,19 @@ class DurabilityTests(unittest.TestCase):
 
 @unittest.skipUnless(sys.platform in ('linux','win32'), 'Owner amendment: no native macOS execution backend')
 class ProcessOwnershipTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform=='win32','Windows notification reconciliation')
+    def test_missing_process_notification_withholds_cleanup(self):
+        from capy_application_acceptor.windows_job import Job
+        original=Job.collect_process
+        def lost_notification(job,timeout_ms):
+            result=original(job,timeout_ms)
+            job.process_notifications=0
+            return result
+        with tempfile.TemporaryDirectory() as td, patch.object(Job,'collect_process',lost_notification):
+            with self.assertRaisesRegex(AcceptorError,'CLEANUP_FAILED'):
+                run_bounded([sys.executable,'-c','print("finished")'],input_bytes=None,timeout_seconds=10,
+                    max_stdout=1024,max_stderr=1024,env=scrubbed_env({}),cwd=Path(td))
+
     @unittest.skipUnless(sys.platform=='win32','Windows atomic process creation')
     def test_owner_killed_before_native_process_constructor_returns(self):
         with tempfile.TemporaryDirectory() as td:

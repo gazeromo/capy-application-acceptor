@@ -8,7 +8,7 @@ from pathlib import Path
 
 from capy_application_acceptor.candidate import read_candidate
 from capy_application_acceptor.codec import parse_strict_json
-from capy_application_acceptor.comparison import classify_case, parse_success_envelope
+from capy_application_acceptor.comparison import classify_case, parse_success_envelope, parse_failure_stderr
 from capy_application_acceptor.constants import MANIFEST_MAX_BYTES, INTERACTION_MAX_BYTES
 from capy_application_acceptor.errors import AcceptorError
 from capy_application_acceptor.profile import read_profile
@@ -19,6 +19,13 @@ from capy_application_acceptor.acceptance import evaluate
 
 
 class AstraRepairTests(unittest.TestCase):
+    def test_native_line_endings_preserve_failure_code(self):
+        for ending in (b"\n", b"\r\n"):
+            for body in (b"INPUT_INVALID", b"INPUT_INVALID: bounded detail"):
+                self.assertEqual(parse_failure_stderr(body + ending), ("INPUT_INVALID", None))
+        for raw in (b"INPUT_INVALID\r\r\n", b"INPUT_INVALID: bad\rline\n", b"INPUT_INVALID\nextra\n"):
+            self.assertIsNotNone(parse_failure_stderr(raw)[1])
+
     def test_empty_subset_lists_and_safe_entrypoint(self):
         document=profile_document()
         document['interaction_expectations'].update(not_for=[],boundaries=[])
