@@ -4,6 +4,8 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import re
+from urllib.parse import urlsplit
 import zipfile
 
 from . import codec
@@ -366,13 +368,16 @@ def _validate_manifest_shape(manifest, members, payload):
                 raise ValueError("public_identity")
         else:
             pid = repo["public_identity"]
-            if not isinstance(pid, str) or not pid.startswith("git://"):
+            if not isinstance(pid, str) or not pid.startswith("git://") or any(ord(ch) <= 32 or ord(ch) == 127 for ch in pid):
                 raise ValueError("public_identity")
-            if "@" in pid or "://" not in pid:
+            parsed = urlsplit(pid)
+            if parsed.scheme != "git" or not parsed.hostname or parsed.username is not None or parsed.password is not None or parsed.query or parsed.fragment:
                 raise ValueError("public_identity")
-            # Credential-free: no userinfo.
-            rest = pid[len("git://"):]
-            if "@" in rest or " " in pid or "\\" in pid:
+            if not re.fullmatch(r"[A-Za-z0-9.-]+(?::[0-9]{1,5})?", parsed.netloc) or not parsed.path.startswith("/"):
+                raise ValueError("public_identity")
+            if parsed.port is not None and not 1 <= parsed.port <= 65535:
+                raise ValueError("public_identity")
+            if any(not re.fullmatch(r"[A-Za-z0-9._~-]+", part) or part in {".", ".."} for part in parsed.path[1:].split("/")):
                 raise ValueError("public_identity")
             if hashlib.sha256(pid.encode("utf-8")).hexdigest() != repo["identity_sha256"]:
                 raise ValueError("identity_sha256")
@@ -480,7 +485,7 @@ def _validate_application_zip(app_zip_bytes: bytes, manifest) -> dict[str, bytes
                     raise _integrity()
                 # Symlink check via external attr? Unix symlink file type 0o120000.
                 mode = (info.external_attr >> 16) & 0o170000
-                if mode == 0o120000:
+                if mode not in (0, 0o100000):
                     raise _integrity()
                 total += info.file_size
                 if total > APP_EXPANDED_MAX_BYTES:

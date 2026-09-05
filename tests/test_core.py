@@ -3,6 +3,7 @@ import copy
 import tempfile
 from pathlib import Path
 import unittest
+import sys
 from capy_application_acceptor.candidate import read_candidate
 from capy_application_acceptor.profile import read_profile
 from capy_application_acceptor.acceptance import evaluate
@@ -42,6 +43,7 @@ class ProfileTests(unittest.TestCase):
         data=profile_bytes(artifact=True);members=unpack(data);members['expected/normal/text-report.txt']=b'wrong'
         with self.assertRaises(AcceptorError):read_profile(archive(members))
 
+@unittest.skipUnless(sys.platform in ('linux','win32'), 'Owner amendment: no native macOS execution backend')
 class ExecutionTests(unittest.TestCase):
     def run_case(self,profile=None,artifact=False):
         candidate=read_candidate((FIXTURES/('artifact-v1.capyrc' if artifact else 'fixed-v1.capyrc')).read_bytes())

@@ -15,6 +15,7 @@ from capy_application_acceptor.locks import IdentityLock
 from capy_application_acceptor.profile import read_profile
 from capy_application_acceptor.process import run_bounded, scrubbed_env
 from capy_application_acceptor.service import Service
+from capy_application_acceptor.models import Evaluation
 from tests.support import FIXTURES, RELEASE, ROOT, profile_bytes, profile_document
 
 
@@ -27,6 +28,9 @@ def wait_for(predicate, seconds=10):
 
 
 def alive(pid):
+    if sys.platform=='linux':
+        try:return Path('/proc',str(pid),'stat').read_text().split(') ',1)[1].split()[0]!='Z'
+        except FileNotFoundError:return False
     if os.name == "nt":
         import ctypes
         k = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -50,8 +54,12 @@ class DurabilityTests(unittest.TestCase):
     def setUpClass(cls):
         cls.cb = (FIXTURES / "fixed-v1.capyrc").read_bytes()
         cls.pb = (FIXTURES / "greeting.capya").read_bytes()
-        with tempfile.TemporaryDirectory() as td:
-            cls.result = evaluate(read_candidate(cls.cb), read_profile(cls.pb), RELEASE, Path(td))
+        if sys.platform not in ('linux','win32'):
+            document=json.loads((FIXTURES / 'persistence-only.json').read_bytes())
+            cls.result=Evaluation('ACCEPTED','ACCEPTED',document,[])
+        else:
+            with tempfile.TemporaryDirectory() as td:
+                cls.result = evaluate(read_candidate(cls.cb), read_profile(cls.pb), RELEASE, Path(td))
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -141,7 +149,33 @@ class DurabilityTests(unittest.TestCase):
             self.service.inspect(aid)
 
 
+@unittest.skipUnless(sys.platform in ('linux','win32'), 'Owner amendment: no native macOS execution backend')
 class ProcessOwnershipTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform=='win32','Windows atomic process creation')
+    def test_owner_killed_before_native_process_constructor_returns(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);env=dict(os.environ,PYTHONPATH=str(ROOT/'src')+os.pathsep+str(ROOT))
+            owner=subprocess.Popen([sys.executable,str(ROOT/'tests/process_fixture.py'),'owner',td,'atomic_windows'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            try:
+                wait_for(lambda:(root/'creation-returned').exists() and (root/'child.pid').exists())
+                pids=[int((root/name).read_text()) for name in ('parent.pid','child.pid')]
+                owner.kill();owner.wait(timeout=10)
+                wait_for(lambda:not any(alive(pid) for pid in pids))
+            finally:
+                if owner.poll() is None:owner.kill();owner.wait(timeout=10)
+
+    def test_detached_descendant_survives_neither_parent_exit_nor_reparenting(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);pidfile=root/'detached.pid'
+            child="import time; time.sleep(30)"
+            intermediate="import subprocess,sys;from pathlib import Path;p=subprocess.Popen([sys.executable,'-c',"+repr(child)+"],start_new_session=True,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);Path("+repr(str(pidfile))+").write_text(str(p.pid))"
+            # Intermediate exits before the root, so the detached grandchild has
+            # already reparented when normal root completion triggers cleanup.
+            parent="import subprocess,sys;subprocess.run([sys.executable,'-c',"+repr(intermediate)+"],check=True);print('complete')"
+            result=run_bounded([sys.executable,'-c',parent],input_bytes=None,timeout_seconds=10,max_stdout=1024,max_stderr=1024,env=scrubbed_env({}),cwd=root)
+            self.assertEqual(result.exit_code,0)
+            self.assertFalse(alive(int(pidfile.read_text())))
+
     def test_normal_parent_exit_kills_redirected_descendant(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

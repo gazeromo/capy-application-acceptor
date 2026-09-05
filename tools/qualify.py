@@ -47,6 +47,23 @@ def qualify(output):
             return document,result.stdout
         doctor,_=command(['doctor']);check(doctor['release']==release and doctor['model_calls']==0,'installed identity')
         command(['profile','inspect','--profile',str(FIX/'csv-mean.capya')])
+        if not doctor['execution']['available']:
+            check(sys.platform=='darwin','unqualified CI platform')
+            refusal,_=command(['accept','--candidate',str(FIX/'mean.capyrc'),'--profile',str(FIX/'csv-mean.capya')],2)
+            check(refusal['code']=='EXECUTION_CONTAINMENT_UNAVAILABLE','macOS fail closed')
+            with sqlite3.connect(Path(env['CAPY_ACCEPTOR_DATA_ROOT'])/'acceptor.sqlite3') as db:
+                aid=db.execute('SELECT acceptance_id FROM attempts').fetchone()[0]
+            inspected,_=command(['acceptance','inspect','--acceptance-id',aid])
+            check(inspected['status']=='FAILED' and inspected['document'] is None,'macOS receipt withheld')
+            result=subprocess.run([str(py),'-I',str(ROOT/'tools/nonexecution_probe.py'),str(ROOT),str(work/'nonexecution')],env=env,cwd=work,capture_output=True,timeout=60)
+            check(result.returncode==0,f'nonexecution probe: {result.stderr[:1000]!r}')
+            facts=json.loads(result.stdout)
+            folder=ROOT/'tests/fixtures/oracle-revision'
+            oracle.validate((folder/'candidate.capyrc').read_bytes(),(folder/'profile.capya').read_bytes(),(folder/'document.json').read_bytes(),json.loads((folder/'release.json').read_bytes()))
+            rows=[{'name':'macos_fail_closed_cli','passed':True},{'name':'installed_nonexecution_portability','passed':facts['passed'],'facts':facts},{'name':'independent_copied_receipt','passed':True}]
+            receipt={'schema':'capy.acceptor-qualification/v0','release':release,'build':build_receipt,'rows':rows,'passed':True,'portable':{},'model_calls':0,'execution_supported':False}
+            (output/'QUALIFICATION.json').write_bytes(canon(receipt))
+            return receipt
         def trial(name, candidate, profile, expected_code, classification):
             folder=output/'journeys'/name;folder.mkdir(parents=True,exist_ok=True)
             cp=folder/'candidate.capyrc';pp=folder/'profile.capya';cp.write_bytes(candidate);pp.write_bytes(profile)
@@ -144,7 +161,7 @@ print(hashlib.sha256(data).hexdigest())
         check(result.returncode==0,'original frozen vector regression')
         vectors=json.loads((vector_output/'RESULT.json').read_bytes());check(vectors['passed']==65 and vectors['total']==65,'all original vectors')
         rows.append({'name':'original_65_vectors','passed':True,'passed_vectors':65})
-    receipt={'schema':'capy.acceptor-qualification/v0','release':release,'build':build_receipt,'rows':rows,'passed':all(r['passed'] for r in rows),'portable':portable,'model_calls':0}
+    receipt={'schema':'capy.acceptor-qualification/v0','release':release,'build':build_receipt,'rows':rows,'passed':all(r['passed'] for r in rows),'portable':portable,'model_calls':0,'execution_supported':True}
     (output/'QUALIFICATION.json').write_bytes(canon(receipt))
     return receipt
 

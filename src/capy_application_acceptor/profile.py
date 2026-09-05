@@ -278,7 +278,7 @@ def _validate_interaction_expectations(exp):
         raise _invalid("operation_id")
     # not_for unique nonempty strings.
     nf = exp["not_for"]
-    if not isinstance(nf, list) or not nf:
+    if not isinstance(nf, list):
         raise _invalid("not_for")
     seen_nf: set[str] = set()
     for item in nf:
@@ -372,7 +372,7 @@ def _validate_interaction_expectations(exp):
         lowered.add(low)
     # boundaries unique boundary IDs each {boundary_id, nearest_operation_ids}.
     bnds = exp["boundaries"]
-    if not isinstance(bnds, list) or not bnds:
+    if not isinstance(bnds, list):
         raise _invalid("boundaries")
     seen_b: set[str] = set()
     for entry in bnds:

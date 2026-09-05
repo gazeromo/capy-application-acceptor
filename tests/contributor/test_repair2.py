@@ -47,6 +47,7 @@ class ProfileInvalidTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "ACCEPTANCE_PROFILE_INVALID")
 
 
+@unittest.skipUnless(sys.platform in ('linux','win32'), 'Owner amendment: no native macOS execution backend')
 class ProcessTreeTests(unittest.TestCase):
     def test_descendant_tree_bounded_wall_time(self):
         from capy_application_acceptor.process import run_bounded

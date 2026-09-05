@@ -14,6 +14,7 @@ import threading
 import time
 
 from .errors import AcceptorError
+from .backend import require_backend
 
 # Only the POSIX guardian inherits this lock descriptor; application code does not.
 IDENTITY_LEASE = ContextVar("acceptor_identity_lease", default=None)
@@ -33,35 +34,35 @@ class BoundedResult:
 class _Owner:
     def __init__(self, argv, input_bytes, env, cwd, deadline):
         self.proc = None
-        self.guard = None
         self.job = None
+        self.linux_control = None
+        self.linux_status = None
+        self.application_returncode = None
         self.closed = False
         kwargs = dict(stdin=subprocess.PIPE if input_bytes is not None else subprocess.DEVNULL,
                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=str(cwd), bufsize=0)
-        ready_read = ready_write = None
+        ready_read = status_write = None
         try:
             if os.name == "nt":
                 from .windows_job import Job
                 self.job = Job()
-                # CREATE_SUSPENDED: no application instructions before job assignment.
-                self.proc = subprocess.Popen(argv, creationflags=0x4 | 0x200, **kwargs)
-                self.job.attach_and_resume(self.proc)
-            else:
-                ready_read, ready_write = os.pipe()
-                launcher = str(Path(__file__).with_name("_process_launch.py"))
-                self.proc = subprocess.Popen([sys.executable, "-I", launcher, str(ready_read), json.dumps(argv)],
-                                             start_new_session=True, pass_fds=(ready_read,), **kwargs)
-                os.close(ready_read); ready_read = None
+                self.proc = self.job.spawn(argv, input_bytes, env, cwd)
+            elif sys.platform == "linux":
+                ready_read, self.linux_control = os.pipe()
+                status_read, status_write = os.pipe()
+                self.linux_status = os.fdopen(status_read, "rb", buffering=0)
                 lease = IDENTITY_LEASE.get()
-                fds = () if lease is None else (lease,)
-                self.guard = subprocess.Popen([sys.executable, "-I", str(Path(__file__).with_name("_process_guard.py")), str(self.proc.pid)],
-                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                    env=env, cwd=str(cwd), bufsize=0, start_new_session=True, pass_fds=fds)
+                fds = (ready_read, status_write) + (() if lease is None else (lease,))
+                self.proc = subprocess.Popen([sys.executable, "-I", str(Path(__file__).with_name("_linux_guard.py")), str(ready_read), str(status_write), json.dumps(argv)],
+                    start_new_session=True, pass_fds=fds, **kwargs)
+                os.close(ready_read); ready_read = None
+                os.close(status_write); status_write = None
                 with selectors.DefaultSelector() as selector:
-                    selector.register(self.guard.stdout, selectors.EVENT_READ)
-                    if not selector.select(max(0, min(5, deadline - time.monotonic()))) or self.guard.stdout.readline() != b"READY\n":
-                        raise OSError("process guardian unavailable")
-                os.write(ready_write, b"1")
+                    selector.register(self.linux_status, selectors.EVENT_READ)
+                    if not selector.select(5) or self.linux_status.readline(128) != b"READY\n":
+                        raise OSError("subreaper unavailable")
+            else:
+                raise AcceptorError('EXECUTION_CONTAINMENT_UNAVAILABLE')
         except BaseException:
             try:
                 self.stop()
@@ -72,15 +73,41 @@ class _Owner:
                             stream.close()
             raise
         finally:
-            for fd in (ready_read, ready_write):
+            for fd in (ready_read, status_write):
                 if fd is not None:
                     os.close(fd)
+
+    def poll(self):
+        if self.linux_status is not None:
+            with selectors.DefaultSelector() as selector:
+                selector.register(self.linux_status, selectors.EVENT_READ)
+                if selector.select(0):
+                    line = self.linux_status.readline(128)
+                    if line.startswith(b"EXIT "):
+                        self.application_returncode = int(line[5:])
+            return self.application_returncode
+        return self.proc.poll()
 
     def stop(self):
         if self.closed:
             return
         self.closed = True
         failure = False
+        if self.linux_control is not None:
+            os.close(self.linux_control); self.linux_control = None
+            try:
+                if self.proc is None:
+                    failure = True
+                else:
+                    if self.proc.wait(timeout=4) != 0:
+                        failure = True
+                    lines = self.linux_status.read(256).splitlines()
+                    if not lines or lines[-1] != b"CLEAN":
+                        failure = True
+            except (OSError, subprocess.TimeoutExpired):
+                failure = True
+            finally:
+                self.linux_status.close()
         if self.job is not None:
             try:
                 self.job.terminate()
@@ -88,21 +115,10 @@ class _Owner:
                 failure = True
             finally:
                 self.job.close()
-        if self.guard is not None:
-            try:
-                self.guard.stdin.close()
-                if self.guard.wait(timeout=4) != 0:
-                    failure = True
-            except (OSError, subprocess.TimeoutExpired):
-                failure = True
-                self.guard.kill()
-                self.guard.wait(timeout=2)
-            finally:
-                self.guard.stdout.close()
         if self.proc is not None:
-            # Also closes the unstarted launch gate case if guard creation failed.
+            # Failed supervisor setup is an error, never a successful cleanup.
             try:
-                if os.name == "posix" and (self.guard is None or failure) and self.proc.poll() is None:
+                if os.name == "posix" and self.proc.poll() is None:
                     os.killpg(self.proc.pid, signal.SIGKILL)
                 elif os.name == "nt" and self.proc.poll() is None:
                     self.proc.kill()
@@ -114,11 +130,15 @@ class _Owner:
                 self.proc.wait(timeout=2)
             except subprocess.TimeoutExpired:
                 failure = True
+            finally:
+                if self.job is not None:
+                    self.proc.close()
         if failure:
             raise AcceptorError("CLEANUP_FAILED")
 
 
 def run_bounded(argv, *, input_bytes, timeout_seconds, max_stdout, max_stderr, env, cwd):
+    require_backend()
     start = time.monotonic()
     deadline = start + timeout_seconds
     owner = _Owner(argv, input_bytes, env, cwd, deadline)
@@ -164,7 +184,7 @@ def run_bounded(argv, *, input_bytes, timeout_seconds, max_stdout, max_stderr, e
         while True:
             if any(overflow):
                 break
-            result_code = proc.poll()
+            result_code = owner.poll()
             if result_code is not None and not any(t.is_alive() for t in readers):
                 break
             if time.monotonic() >= deadline:

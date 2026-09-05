@@ -11,7 +11,8 @@ def app(root, mode):
     (root / "parent.pid").write_text(str(os.getpid()))
     code = "import os,time;from pathlib import Path;p=Path(" + repr(str(root)) + ");(p/'child.pid').write_text(str(os.getpid()));time.sleep(30);(p/'escaped').write_text('bad')"
     child = subprocess.Popen([sys.executable, "-c", code], stdin=subprocess.DEVNULL,
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
+                             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name=='nt' else 0)
     deadline = time.monotonic() + 10
     while not (root / "child.pid").exists():
         if time.monotonic() > deadline:
@@ -24,6 +25,14 @@ def app(root, mode):
 
 def owner(root, mode):
     from capy_application_acceptor.process import run_bounded, scrubbed_env
+    if mode=='atomic_windows':
+        from capy_application_acceptor.windows_job import NativeProcess
+        original=NativeProcess.__init__
+        def pause(self,*args,**kwargs):
+            original(self,*args,**kwargs)
+            (root/'creation-returned').write_text('assigned')
+            time.sleep(30)
+        NativeProcess.__init__=pause
     def execute(*args, **kwargs):
         run_bounded([sys.executable, str(Path(__file__).resolve()), "app", str(root), mode],
                     input_bytes=None, timeout_seconds=60, max_stdout=1024, max_stderr=1024,

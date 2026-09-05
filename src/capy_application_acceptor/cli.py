@@ -12,6 +12,7 @@ from .profile import read_profile
 from .release_identity import get
 from .service import Service
 from .store import SCHEMA_VERSION
+from .backend import capability
 
 
 def read_input(path, maximum, code):
@@ -48,14 +49,14 @@ def main(argv=None) -> int:
             service = Service(data_root(), get())
             if args.command == "doctor":
                 payload = canonical_bytes({"schema": "capy.acceptor-doctor/v0", "ok": True, "version": "0.1.0", "database_schema": SCHEMA_VERSION,
-                    "release": service.release, "data_root": str(service.store.root), "model_calls": 0,
+                    "release": service.release, "data_root": str(service.store.root), "model_calls": 0, "execution": capability(),
                     "supported_side_effects": ["read_only", "artifact_generation"], "state_required": False, "connections": []})
             elif args.command == "acceptance":
                 payload = canonical_bytes(service.inspect(args.acceptance_id))
             else:
                 payload = service.accept(read_input(args.candidate, 64 * 1024 * 1024, "RELEASE_CANDIDATE_INTEGRITY_FAILED"), read_input(args.profile, 32 * 1024 * 1024, "ACCEPTANCE_PROFILE_INVALID"))
         sys.stdout.buffer.write(payload + b"\n")
-        return 1 if json.loads(payload).get("status") == "REJECTED" else 0
+        return 1 if args.command == "accept" and json.loads(payload).get("status") == "REJECTED" else 0
     except AcceptorError as exc:
         sys.stdout.buffer.write(canonical_bytes({"schema": "capy.acceptor-error/v0", "status": "ERROR", "code": exc.code}) + b"\n")
         return 2

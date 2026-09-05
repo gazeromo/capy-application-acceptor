@@ -21,6 +21,7 @@ from .projection import (
     identity_sha,
 )
 from .scan import scan_many
+from .backend import require_backend
 
 
 def _release_invalid() -> AcceptorError:
@@ -180,10 +181,6 @@ def _trial(candidate, profile, release, work_root: Path, created: list, *, on_ev
             raise AcceptorError("TOOLCHAIN_UNTRUSTED", "toolchain")
     except KeyError:
         raise AcceptorError("RELEASE_CANDIDATE_INTEGRITY_FAILED", "candidate")
-    # Side-effect requirement vs descriptor: treat mismatch as interaction mismatch.
-    # (Profile only allows supported values, so any difference is semantic.)
-    if req.get("side_effect") != desc.get("side_effect"):
-        return _early_rejection(candidate, profile, release_clean, "REJECTED_INTERACTION_MISMATCH", secret_hit=False)
     # Identity for portable docs.
     identity = build_identity(candidate, profile, release_clean)
     isha = identity_sha(identity)
@@ -197,9 +194,16 @@ def _trial(candidate, profile, release, work_root: Path, created: list, *, on_ev
     if scan_many(blobs):
         return _early_rejection(candidate, profile, release_clean, "REJECTED_SECRET_BOUNDARY", secret_hit=True)
 
+    # Source scanning precedes every semantic rejection and any PASSED scan fact.
+    if req.get("side_effect") != desc.get("side_effect"):
+        return _early_rejection(candidate, profile, release_clean, "REJECTED_INTERACTION_MISMATCH", secret_hit=False)
+
     # Interaction expectations cross-check (semantic, no LM judgment).
     if not _interaction_matches(profile.document["interaction_expectations"], candidate.interaction, desc):
         return _early_rejection(candidate, profile, release_clean, "REJECTED_INTERACTION_MISMATCH", secret_hit=False)
+
+    # No wheel setup or candidate process on a host without qualified teardown.
+    require_backend()
 
     # Do not run candidate code before input/toolchain/secret checks pass:
     # validate request sizes and resource bindings fit limits (already validated

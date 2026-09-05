@@ -16,13 +16,20 @@ event generations. An uncertain marker or cleanup failure fails closed and
 withholds a portable acceptance receipt. Only matching attempt ID, nonce, root
 and ownership marker authorize recursive cleanup. Lock files remain in place.
 
-POSIX execution uses a launch gate and separate guardian. The guardian observes
-PID/parent/group/birth metadata, retains the identity lock descriptor, and kills
-the owned tree when the owner closes its control pipe or exits. Applications
-never inherit that lock descriptor. Windows uses suspended process creation,
-assignment to a non-breakaway Job, and documented thread resume APIs. The Job
-has KILL_ON_JOB_CLOSE. Every normal or exceptional return terminates residual
-descendants and drains bounded unbuffered streams before accepting cleanup.
+Linux execution uses a separate PR_SET_CHILD_SUBREAPER supervisor which adopts
+orphaned descendants even when they detach. It retains the identity lock and
+kills and reaps every child before releasing ownership. Applications inherit
+only standard streams. Windows assigns the process atomically to a
+non-breakaway KILL_ON_JOB_CLOSE Job through PROC_THREAD_ATTRIBUTE_JOB_LIST
+during CreateProcessW; there is no create-before-assignment window. Normal
+cleanup confirms zero active Job processes. Every return drains bounded
+unbuffered streams before accepting cleanup.
+
+Native unprivileged macOS is not an accepted V0 execution backend. Fresh
+candidate execution fails closed with EXECUTION_CONTAINMENT_UNAVAILABLE,
+before wheel setup or any candidate process. Parsing, validation, durable
+state, inspection and exact replay remain available. See PLATFORMS.md for the
+explicit owner-authorized amendment to original plan section 23.
 
 This supports bounded public synthetic applications, not arbitrary malicious
 Python. It is not filesystem or network isolation and provides no hostile-code

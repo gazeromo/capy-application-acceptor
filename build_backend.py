@@ -5,6 +5,7 @@ import hashlib
 import io
 from pathlib import Path
 import sys
+import subprocess
 import zipfile
 
 ROOT = Path(__file__).resolve().parent
@@ -21,7 +22,11 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     finally:
         sys.path.pop(0)
     files = {}
-    for path in sorted((ROOT / "src/capy_application_acceptor").rglob("*.py")):
+    tracked = subprocess.check_output(['git','ls-tree','-r','--name-only',identity['implementation_commit'],'--','src/capy_application_acceptor'],cwd=ROOT,timeout=10).decode().splitlines()
+    for name in sorted(tracked):
+        if not name.endswith('.py'):
+            continue
+        path = ROOT / name
         if path.is_symlink():
             raise ValueError("source symlink")
         files[path.relative_to(ROOT / "src").as_posix()] = path.read_bytes()

@@ -218,7 +218,7 @@ def parse_descriptor(raw: bytes) -> dict:
     if not isinstance(ep, str) or ep != ep.strip() or "/" in ep or "\\" in ep or ep in ("", ".", ".."):
         raise InteractionError("descriptor-entrypoint")
     # Entrypoint must look like a safe python file; existence checked by caller.
-    if not codec.is_safe_basename(ep) or not ep.endswith(".py"):
+    if not codec.is_safe_basename_inner_part(ep) or not ep.endswith(".py"):
         raise InteractionError("descriptor-entrypoint-name")
     if value["side_effect"] not in _SIDE_EFFECTS:
         raise InteractionError("descriptor-side-effect")
