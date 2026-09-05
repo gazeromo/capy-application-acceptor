@@ -9,6 +9,7 @@ import re
 import sys
 import tomllib
 import zipfile
+from urllib.parse import urlsplit
 
 BASE=Path(__file__).resolve().parent
 NAMES=['RELEASE-CANDIDATE.json','application/application.zip','application/interaction.json','evidence/verification.json','toolchain/authoring-bundle.zip']
@@ -65,7 +66,7 @@ def unpack(raw,canonical=False,maximum=64*1024*1024,source_paths=False):
         infos=z.infolist();need(len(infos)<=2048 and sum(i.file_size for i in infos)<=64*1024*1024,'expanded_bound')
         for i in infos:
             (safe_source if source_paths else safe)(i.filename);need(i.filename.casefold() not in folded,'duplicate_path');folded.add(i.filename.casefold())
-            need(not i.is_dir() and not (i.flag_bits&1) and ((i.external_attr>>16)&0o170000)!=0o120000,'unsafe_member')
+            need(not i.is_dir() and not (i.flag_bits&1) and ((i.external_attr>>16)&0o170000) in (0,0o100000),'unsafe_member')
             members[i.filename]=z.read(i)
     if canonical:need(pack(members)==raw,'canonical_zip')
     return members
@@ -196,7 +197,12 @@ def candidate(raw):
     need(facts['package_compare']=={'sha256_a':a['archive']['sha256'],'sha256_b':a['archive']['sha256'],'size_a':a['archive']['size_bytes'],'size_b':a['archive']['size_bytes']},'package_comparison')
     need(facts['interaction_preserve']=={'candidate_unchanged':True,'timed_out':False,'source_sha256':interaction['source_sha256'],'canonical_sha256':interaction['sha256'],'canonical_size_bytes':interaction['size_bytes']},'interaction_preserve')
     repository=m['source']['repository'];need(bool(re.fullmatch(r'[0-9a-f]{64}',repository['identity_sha256'])),'repository_hash')
-    if remote:need(repository['public_identity'].startswith('git://') and '@' not in repository['public_identity'] and sha(repository['public_identity'].encode())==repository['identity_sha256'],'repository_identity')
+    if remote:
+        public=repository['public_identity'];uri=urlsplit(public)
+        need(public.startswith('git://') and not any(ord(ch)<=32 or ord(ch)==127 for ch in public) and uri.hostname and uri.username is None and uri.password is None and not uri.query and not uri.fragment,'repository_identity')
+        need(bool(re.fullmatch(r'[A-Za-z0-9.-]+(?::[0-9]{1,5})?',uri.netloc)) and uri.path.startswith('/') and (uri.port is None or 1<=uri.port<=65535),'repository_address')
+        need(all(re.fullmatch(r'[A-Za-z0-9._~-]+',part) and part not in ('.','..') for part in uri.path[1:].split('/')),'repository_path')
+        need(sha(public.encode())==repository['identity_sha256'],'repository_hash')
     else:need(repository['kind']=='local' and repository['public_identity'] is None,'local_repository')
     identity={'schema':m['schema'],'project_id':m['project']['project_id'],'application_id':a['id'],'source':m['source'],'application_archive_sha256':a['archive']['sha256'],'application_descriptor_sha256':a['descriptor_sha256'],'interaction':{'schema':interaction['schema'],'source_sha256':interaction['source_sha256'],'canonical_sha256':interaction['sha256'],'operation_id':interaction['operation_id']},'verification_receipt_sha256':m['verification']['receipt']['sha256'],'toolchain':{'release_binding_commit':t['release_binding_commit'],'authoring_bundle_sha256':BUNDLE,'wheel_sha256':t['wheel_sha256'],'interaction_contract':t['interaction_contract']}}
     need(m['identity_sha256']==sha(canon(identity)) and m['release_candidate_id']=='rc_'+m['identity_sha256'][:32],'candidate_identity')
@@ -272,6 +278,19 @@ def expected(case,parts):
     x=case['expect']
     return {'status':x['status'],'result_sha256':sha(canon(x['result'])) if x['status']=='ok' else None,'failure_code':x['failure_code'],'artifacts':sorted([{'filename':a['filename'],'sha256':a['sha256'],'size_bytes':len(parts[a['member']])} for a in x['artifacts']],key=lambda a:a['filename'])}
 
+def pairing(profile,descriptor,interaction):
+    wanted=profile['interaction_expectations'];operation=interaction['operation']
+    checks=[profile['candidate_requirements']['side_effect']==descriptor['side_effect'],wanted['operation_id']==operation['operation_id'],
+            wanted['purpose'] is None or wanted['purpose']==interaction['purpose'],set(wanted['not_for'])<=set(interaction['not_for'])]
+    requested=[{k:f[k] for k in ('field_id','required')} for f in operation['request_fields']]
+    resources=[{'slot':f['slot'],'required':f['required'],'min_items':f['minimum_count'],'max_items':f['maximum_count']} for f in operation['resource_fields']]
+    checks.extend([canon(requested)==canon(wanted['request_fields']),canon(resources)==canon(wanted['resource_fields']),
+                   [f['path'] for f in operation['result']['facts']]==wanted['result_fact_paths'],
+                   [f['filename'] for f in operation['result']['artifacts']]==wanted['artifact_filenames']])
+    boundaries={b['boundary_id']:b['nearest_operation_ids'] for b in interaction['boundaries']}
+    checks.extend(boundaries.get(b['boundary_id'])==b['nearest_operation_ids'] for b in wanted['boundaries'])
+    return all(checks)
+
 def validate(candidate_bytes,profile_bytes,document_bytes,release):
     m,d,i=candidate(candidate_bytes);p,parts=profile(profile_bytes);doc=parse(document_bytes)
     keys(release,['contract','version','implementation_commit','implementation_tree'])
@@ -287,6 +306,9 @@ def validate(candidate_bytes,profile_bytes,document_bytes,release):
     keys(doc['secret_scan'],['status','findings']);need(doc['secret_scan'] in [{'status':'PASSED','findings':[]},{'status':'REJECTED','findings':['SECRET_PATTERN']}],'secret_scan')
     need(type(doc['cases']) is list and type(doc['classification']) is str,'report_types')
     early=doc['classification'] in ['REJECTED_SECRET_BOUNDARY','REJECTED_INTERACTION_MISMATCH'] and not doc['cases']
+    compatible=pairing(p,d,i)
+    if doc['status']=='ACCEPTED':need(compatible,'interaction_pairing')
+    if doc['classification']=='REJECTED_INTERACTION_MISMATCH':need(not compatible,'interaction_rejection_cause')
     if not early:need(len(doc['cases'])==len(p['cases']),'case_coverage')
     for row,case in zip(doc['cases'],p['cases']):
         keys(row,['case_id','matched','classification','expected','observed']);need(row['case_id']==case['case_id'] and canon(row['expected'])==canon(expected(case,parts)),'case_expected')
@@ -305,7 +327,7 @@ def validate(candidate_bytes,profile_bytes,document_bytes,release):
         if row['matched']:need(canon(row['observed'])==canon(row['expected']) and row['classification']=='CASE_MATCHED','forged_case_match')
         else:
             need(row['classification'] in ['REJECTED_SECRET_BOUNDARY','REJECTED_CASE_TIMEOUT','REJECTED_OUTPUT_LIMIT','REJECTED_APPLICATION_EXIT','REJECTED_FAILURE_CODE_MISMATCH','REJECTED_RESULT_MISMATCH','REJECTED_ARTIFACT_SET_MISMATCH','REJECTED_ARTIFACT_BYTES_MISMATCH'],'causal_case')
-            need(canon(row['observed'])!=canon(row['expected']) or row['classification'] in ['REJECTED_SECRET_BOUNDARY','REJECTED_OUTPUT_LIMIT','REJECTED_APPLICATION_EXIT'],'false_mismatch')
+            need(canon(row['observed'])!=canon(row['expected']) or row['classification'] in ['REJECTED_SECRET_BOUNDARY','REJECTED_OUTPUT_LIMIT','REJECTED_APPLICATION_EXIT','REJECTED_ARTIFACT_SET_MISMATCH'],'false_mismatch')
     secret_failure=doc['classification']=='REJECTED_SECRET_BOUNDARY' or any(x['classification']=='REJECTED_SECRET_BOUNDARY' for x in doc['cases'])
     need((doc['secret_scan']['status']=='REJECTED')==secret_failure,'secret_scan_causality')
     if doc['status']=='ACCEPTED':

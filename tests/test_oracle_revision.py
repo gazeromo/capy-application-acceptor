@@ -12,6 +12,25 @@ spec.loader.exec_module(oracle)
 
 
 class OracleRevisionTests(unittest.TestCase):
+    def test_contradictory_profile_cannot_be_rebound_to_acceptance(self):
+        folder=ROOT/'tests/fixtures/oracle-revision'
+        candidate=(folder/'candidate.capyrc').read_bytes();profile=(folder/'profile.capya').read_bytes()
+        doc=json.loads((folder/'document.json').read_bytes());release=json.loads((folder/'release.json').read_bytes())
+        parts=oracle.unpack(profile);p=json.loads(parts['ACCEPTANCE-PROFILE.json'])
+        p['interaction_expectations']['purpose']='A different exact purpose.'
+        parts['ACCEPTANCE-PROFILE.json']=oracle.canon(p);profile=oracle.pack(parts)
+        doc['identity']['profile_bundle_sha256']=oracle.sha(profile)
+        doc['identity_sha256']=oracle.sha(oracle.canon(doc['identity']));doc['acceptance_id']='acc_'+doc['identity_sha256'][:32]
+        with self.assertRaisesRegex(ValueError,'interaction_pairing'):
+            oracle.validate(candidate,profile,oracle.canon(doc),release)
+
+    def test_omitted_unsafe_artifact_can_have_equal_portable_projections(self):
+        folder=ROOT/'tests/fixtures/oracle-revision'
+        candidate=(folder/'candidate.capyrc').read_bytes();profile=(folder/'profile.capya').read_bytes()
+        doc=json.loads((folder/'document.json').read_bytes());release=json.loads((folder/'release.json').read_bytes())
+        doc.update(schema='capy.independent-application-rejection/v0',status='REJECTED',classification='REJECTED_ARTIFACT_SET_MISMATCH')
+        doc['cases'][0].update(matched=False,classification='REJECTED_ARTIFACT_SET_MISMATCH')
+        self.assertTrue(oracle.validate(candidate,profile,oracle.canon(doc),release))
     def test_source_names_and_strict_artifact_names(self):
         for name in (".gitignore", "_helpers.py", "pkg/__init__.py", "pkg/.data"):
             oracle.safe_source(name)

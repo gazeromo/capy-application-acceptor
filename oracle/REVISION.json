@@ -1,12 +1,16 @@
 {
   "schema": "capy.acceptor-oracle-revision/v0",
-  "revision": 1,
+  "revision": 2,
   "original_sha256": "b3d00445cc6da570c7bd55173bcc3ff3a96a447ae1f4050ca8ca24ae95a9fba7",
-  "corrected_sha256": "b5ac41674f1854495c87ec58a832daba155fc478551ebfcc35629653822ce06c",
+  "corrected_sha256": "67f00493604fc0e28b2b5b994f21d7d4adca87cf15a40c3a2d95f9cb3a7b812d",
   "changes": [
     "O1 source-file grammar distinct from resource/artifact names",
-    "O2 exact canonical JSON comparison of portable receipt bindings"
+    "O2 exact canonical JSON comparison of portable receipt bindings",
+    "O3 independently compare candidate/profile interaction and side-effect requirements",
+    "O4 permit safe artifact-set rejection projections when unsafe names are intentionally omitted",
+    "O5 reject malformed or credential-bearing public identities and explicit nonregular archive member types"
   ],
   "approval": "campaigns/independent_application_acceptance_v0/ORACLE-DEFECT-ADJUDICATION.md",
-  "original_muse_scores_unchanged": true
+  "original_muse_scores_unchanged": true,
+  "previous_corrected_sha256": "b5ac41674f1854495c87ec58a832daba155fc478551ebfcc35629653822ce06c"
 }

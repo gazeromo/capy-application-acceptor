@@ -41,3 +41,25 @@ receipt bindings (including toolchain), and matched-case comparisons. Preserve
 semantic rules; add valid-document and numeric-alias regressions. Publish after
 Muse scoring in a separately attributed product-oracle correction. Original
 oracle and both original65-vector scores remain unchanged. No feedback to Muse.
+
+## Review A product-oracle revision 2
+
+Fresh independent Review A of c3828271d153bb7bf24558bdae99770b8c226694 found:
+
+- O3: an ACCEPTED document could be rebound to a contradictory exact profile
+  purpose because the validator never compared interaction requirements.
+- O4: a legitimate unsafe/dotfile artifact-set rejection could have equal safe
+  projections; the oracle rejected that report even though unsafe names must
+  not be copied into portable evidence.
+- O5: malformed or credential-bearing source URLs and explicit nonregular
+  application ZIP members were insufficiently validated. The same contract
+  defect existed in product and copied oracle validators.
+
+Revision 2 compares every specified interaction requirement and side effect
+independently, permits the contract's safe artifact anomaly projection, and
+validates source public identities and regular-file types. No new document
+field or profile requirement is introduced. The validator still cannot prove
+actual execution from unsigned copied bytes; it checks portable bindings and
+consistent claims. Focused regressions preserve exact numeric typing and the
+original 16-file freeze. Original Muse oracle bytes and Run 1/Run 2 scores are
+unchanged. Independent patched-source recheck is recorded separately.
