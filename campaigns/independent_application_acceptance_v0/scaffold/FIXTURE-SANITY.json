@@ -1,0 +1,47 @@
+{
+  "checks": [
+    {
+      "candidate": "fixed-v1.capyrc",
+      "case_id": "normal",
+      "passed": true
+    },
+    {
+      "candidate": "fixed-v1.capyrc",
+      "case_id": "invalid",
+      "passed": true
+    },
+    {
+      "candidate": "artifact-v1.capyrc",
+      "case_id": "normal",
+      "passed": true
+    },
+    {
+      "candidate": "artifact-v1.capyrc",
+      "case_id": "invalid",
+      "passed": true
+    },
+    {
+      "candidate": "csv-correct.capyrc",
+      "case_id": "normal",
+      "passed": true
+    },
+    {
+      "candidate": "csv-correct.capyrc",
+      "case_id": "zero",
+      "passed": true
+    },
+    {
+      "candidate": "csv-correct.capyrc",
+      "case_id": "invalid",
+      "passed": true
+    },
+    {
+      "candidate": "csv-correct.capyrc",
+      "case_id": "empty",
+      "passed": true
+    }
+  ],
+  "passed": 8,
+  "toolchain": "56c9f6c930b21d600a2e8f10da7a3e92f5cfbf1c6d91490d170d1790e5555603",
+  "claim": "direct synthetic fixture sanity check; not product acceptance"
+}

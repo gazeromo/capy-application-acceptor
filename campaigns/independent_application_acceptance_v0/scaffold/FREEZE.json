@@ -1,0 +1,41 @@
+{
+  "core_entrypoints": "stubs only; no core implementation before contribution",
+  "hidden_file_count": 16,
+  "hidden_location": "separate Astra-owned root; never copied to Contributor",
+  "hidden_oracle_sha256": "34f094d974ff4f377f6b60333aa4697420ebde8a66f0a27062f5dd6797888b58",
+  "muse_implementation_runs_before_freeze": 0,
+  "packet_sha256": "23f59127346fb92e3a9af67a234e4edab0eb44d3b4f08827a4e91f0c70e0fd39",
+  "prior_remote_head": "eb984cee6d068d700baf37bcf5397327107674b3",
+  "qualification": {
+    "baseline": "12 tests,20 subtest errors, all pending core implementation",
+    "direct_exact_wheel_fixture_cases": 8,
+    "hidden_vectors": 65,
+    "oracle_invalid_profiles": 4,
+    "oracle_receipt_tampers": 20,
+    "visible_tests": 12
+  },
+  "requested_model": "muse-spark-1.3-contributor",
+  "schema": "capy.muse-scaffold-freeze/v0",
+  "specifications": {
+    "spec/ACCEPTANCE-PROFILE-V0.md": "ce8c4df6f02fa0d7e3540bd3cd8b32d9283c5068a0c6085ab9bc247c3a87aad7",
+    "spec/ACCEPTANCE-RECEIPT-V0.md": "1d8400202ae41200850e91614c71ea786e1a5749540b1a605137481b27db2073",
+    "spec/DEVKIT-CONTRACT.md": "f96492a5839776f79be5b95f2b38fbec8215e442451f1753454dbb98b35266a7",
+    "spec/DEVKIT-INTERACTION-CONTRACT.md": "722066a6d13dc672ca49f042edec0324bb78405859cfa2ef42c88b81f2e81723",
+    "spec/RELEASE-CANDIDATE-V1-EXAMPLE.json": "3004583bf8504a98247a09fb67a6751b38c6d4889b0c915bffcaac302955db6a",
+    "spec/RELEASE-CANDIDATE-V1.md": "4d635227b840b148e872b671f2615446d68b240acc2a9048cd12ea87f22f2bb4",
+    "spec/V0-NON-CLAIMS.json": "40d579cbb3efa60a522e95e91aa96c5343d7f75c05a966d1def84828200e9c56",
+    "spec/VERIFICATION-RECEIPT-V1-EXAMPLE.json": "e5c571573a1cfbf0445c3606d5934fecf8b84cbd8e3db244f98785c668b7ffe9"
+  },
+  "visible_digest": "fcdf398b38593b5479d606e9f2b3b094563d89932094e85ca758c45c905b7b46",
+  "visible_tests_and_fixtures": {
+    "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/contributor/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/fixtures/accepted-v0.capyrc": "fab0d9e9a244af2b21da15e9f09d91dd5195be05d907eeddd4e9feae3b94b983",
+    "tests/fixtures/artifact-v1.capyrc": "2f06269b3d9dd0c366f8b07b73ee932706d2b38762809b8ee0f55bab13d8416e",
+    "tests/fixtures/fixed-v1.capyrc": "188c9498712d262b41b9305807437b51e6eb436b20f0d677e257989be9ce5a6f",
+    "tests/fixtures/greeting.capya": "06ee5eaecc2d253a651c26b585e96aee2431ee4fe7d36f25d276c489f8927425",
+    "tests/fixtures/report.capya": "bae9c3a8484d89b95bf93b46c0c80af021f0d7ca33b4d52fd31d78d1662b3dc3",
+    "tests/support.py": "83fb10b610d3ef2390168dfeeaab35b01db93b8f3e5f92ef210caea7ebca00c5",
+    "tests/test_core.py": "12c934cd850b5791bf50b268fe43d738747c6e09e3e09f6ba4e5129a8e137d07"
+  }
+}

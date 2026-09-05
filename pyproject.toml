@@ -1,0 +1,15 @@
+[build-system]
+requires = []
+build-backend = "build_backend"
+backend-path = ["."]
+
+[project]
+name = "capy-application-acceptor"
+version = "0.1.0"
+description = "Independent deterministic acceptance of synthetic Capy applications"
+requires-python = ">=3.11"
+dependencies = []
+license = "LicenseRef-Proprietary"
+
+[project.scripts]
+capy-acceptor = "capy_application_acceptor.cli:main"
