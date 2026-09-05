@@ -151,6 +151,36 @@ class DurabilityTests(unittest.TestCase):
 
 @unittest.skipUnless(sys.platform in ('linux','win32'), 'Owner amendment: no native macOS execution backend')
 class ProcessOwnershipTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform=='win32','Windows retained descendant handle')
+    def test_cleanup_signals_preopened_descendant_handle_with_fast_children(self):
+        import ctypes
+        from concurrent.futures import ThreadPoolExecutor
+        k=ctypes.WinDLL('kernel32',use_last_error=True)
+        k.OpenProcess.argtypes=[ctypes.c_ulong,ctypes.c_int,ctypes.c_ulong];k.OpenProcess.restype=ctypes.c_void_p
+        k.WaitForSingleObject.argtypes=[ctypes.c_void_p,ctypes.c_ulong];k.WaitForSingleObject.restype=ctypes.c_ulong
+        k.CloseHandle.argtypes=[ctypes.c_void_p]
+        with tempfile.TemporaryDirectory() as td, ThreadPoolExecutor(max_workers=1) as pool:
+            root=Path(td)
+            app="""import subprocess,sys,time
+from pathlib import Path
+child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)'],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+Path('child.pid').write_text(str(child.pid))
+fast=[subprocess.Popen([sys.executable,'-c','pass'],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL) for _ in range(8)]
+for process in fast: process.wait()
+while not Path('release').exists():time.sleep(.01)
+"""
+            future=pool.submit(run_bounded,[sys.executable,'-c',app],input_bytes=None,timeout_seconds=10,
+                max_stdout=1024,max_stderr=1024,env=scrubbed_env({}),cwd=root)
+            wait_for(lambda:(root/'child.pid').exists())
+            handle=k.OpenProcess(0x100000,False,int((root/'child.pid').read_text()))
+            self.assertTrue(handle)
+            try:
+                self.assertEqual(k.WaitForSingleObject(handle,0),258)
+                (root/'release').touch()
+                self.assertEqual(future.result(timeout=20).exit_code,0)
+                self.assertEqual(k.WaitForSingleObject(handle,0),0)
+            finally:k.CloseHandle(handle)
+
     @unittest.skipUnless(sys.platform=='win32','Windows notification reconciliation')
     def test_missing_process_notification_withholds_cleanup(self):
         from capy_application_acceptor.windows_job import Job

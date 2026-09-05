@@ -28,3 +28,11 @@ platform non-claim is recorded here and in doctor execution-capability facts.
 Original Muse snapshots and scores remain unchanged. Source execution tests
 now skip unsupported platforms under this owner amendment; separate tests
 prove macOS refusal, zero candidate processes and receipt withholding.
+
+Windows cleanup uses a private completion port associated before atomic Job
+assignment. It reconciles every process-start notification against the Job's
+total process count, requires zero active processes, and waits for each retained
+owned process handle to signal. Lost notifications or unconfirmed termination
+cause CLEANUP_FAILED and withhold a receipt; accounting zero alone is not proof
+of completed process teardown. Job notification loss can therefore reduce
+execution availability without weakening the cleanup gate.

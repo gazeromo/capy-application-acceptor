@@ -14,6 +14,7 @@ import time
 
 from build_release import build
 from control_fixtures import artifact_controls, canon, profile_change, reseal, sha
+from receipt_controls import matrix as receipt_matrix
 
 ROOT=Path(__file__).resolve().parents[1]
 FIX=ROOT/'tests/fixtures/product'
@@ -59,8 +60,10 @@ def qualify(output):
             check(result.returncode==0,f'nonexecution probe: {result.stderr[:1000]!r}')
             facts=json.loads(result.stdout)
             folder=ROOT/'tests/fixtures/oracle-revision'
-            oracle.validate((folder/'candidate.capyrc').read_bytes(),(folder/'profile.capya').read_bytes(),(folder/'document.json').read_bytes(),json.loads((folder/'release.json').read_bytes()))
+            tamper=receipt_matrix(oracle,(folder/'candidate.capyrc').read_bytes(),(folder/'profile.capya').read_bytes(),(folder/'document.json').read_bytes(),json.loads((folder/'release.json').read_bytes()))
+            (output/'ORACLE-TAMPER-MATRIX.json').write_bytes(canon(tamper))
             rows=[{'name':'macos_fail_closed_cli','passed':True},{'name':'installed_nonexecution_portability','passed':facts['passed'],'facts':facts},{'name':'independent_copied_receipt','passed':True}]
+            rows.append({'name':'receipt_tamper_matrix','passed':True,'rejected_vectors':tamper['rejected']})
             receipt={'schema':'capy.acceptor-qualification/v0','release':release,'build':build_receipt,'rows':rows,'passed':True,'portable':{},'model_calls':0,'execution_supported':False}
             (output/'QUALIFICATION.json').write_bytes(canon(receipt))
             return receipt
@@ -87,7 +90,10 @@ def qualify(output):
         wrong=(FIX/'total.capyrc').read_bytes();mean=(FIX/'mean.capyrc').read_bytes();artifact=(FIX/'artifact.capyrc').read_bytes()
         trial('A_verified_total',wrong,mean_profile,1,'REJECTED_INTERACTION_MISMATCH')
         accepted=trial('B_verified_mean',mean,mean_profile,0,'ACCEPTED')
-        trial('C_verified_artifact',artifact,artifact_profile,0,'ACCEPTED')
+        artifact_document=trial('C_verified_artifact',artifact,artifact_profile,0,'ACCEPTED')
+        tamper=receipt_matrix(oracle,artifact,artifact_profile,canon(artifact_document),release)
+        (output/'ORACLE-TAMPER-MATRIX.json').write_bytes(canon(tamper))
+        rows.append({'name':'receipt_tamper_matrix','passed':True,'rejected_vectors':tamper['rejected']})
         expected={'missing':'REJECTED_ARTIFACT_SET_MISMATCH','extra':'REJECTED_ARTIFACT_SET_MISMATCH','wrong_bytes':'REJECTED_ARTIFACT_BYTES_MISMATCH','undeclared':'REJECTED_APPLICATION_EXIT'}
         for name,candidate in artifact_controls(artifact):trial('C_control_'+name,candidate,artifact_profile,1,expected[name])
         trial('D_other_candidate',artifact,mean_profile,2,'APPLICATION_PROFILE_MISMATCH')
