@@ -1,0 +1,21 @@
+[
+  "safe_execution_of_malicious_arbitrary_code",
+  "connection_bearing_application_acceptance",
+  "stateful_application_acceptance",
+  "external_effect_acceptance",
+  "runtime_compatibility_beyond_bounded_portable_contract",
+  "application_installation",
+  "workspace_binding",
+  "publication",
+  "activation",
+  "deployment",
+  "publisher_identity_or_signing",
+  "owner_approval_transport",
+  "marketplace_distribution",
+  "remote_acceptance_service",
+  "multi_user_authorization",
+  "private_code_suitability_for_contributor",
+  "model_superiority",
+  "model_reliability_outside_this_task",
+  "private_chain_of_thought_observability"
+]

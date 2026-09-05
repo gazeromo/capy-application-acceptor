@@ -1,0 +1,51 @@
+{
+  "ci_log_sha256": "69690076ce733b77ddc78014b0c52b18959506bb05e6156d4b8842aa006d1a47",
+  "ci_run": 33967453188,
+  "ci_url": "https://github.com/gazeromo/capy-application-acceptor/actions/runs/33967453188",
+  "implementation": {
+    "contract": "capy.independent-application-acceptance/v0",
+    "implementation_commit": "05420906f3966a4c73a2261b1ce48d0a48a4d60c",
+    "implementation_tree": "dc383e96373ed109b5a8560ee8df6d76be8604b5",
+    "version": "0.1.0"
+  },
+  "macos_candidate_processes_started": 0,
+  "macos_fresh_acceptance_receipts": 0,
+  "macos_input_tamper_vectors": 47,
+  "model_calls": 0,
+  "original_vectors_each_execution_platform": 65,
+  "passed": true,
+  "platform_receipts": {
+    "macos": "qualification/macos/QUALIFICATION.json",
+    "ubuntu": "qualification/ubuntu/QUALIFICATION.json",
+    "windows": "qualification/windows/QUALIFICATION.json"
+  },
+  "portable_documents_compared": 7,
+  "portable_receipt_bytes_identical_linux_windows": true,
+  "qualification_head": "fc7eebdd6c4b47fd5186d2a81c834222061d2e8c",
+  "receipt_tamper_vectors_each_platform": 26,
+  "schema": "capy.acceptor-product-qualification/v0",
+  "source_tests": {
+    "macos": {
+      "collected": 70,
+      "failures": 0,
+      "passed": 55,
+      "skip_basis": "owner macOS execution amendment and Windows-only tests",
+      "skipped": 15
+    },
+    "ubuntu": {
+      "collected": 70,
+      "failures": 0,
+      "passed": 67,
+      "skip_basis": "owner macOS execution amendment and Windows-only tests",
+      "skipped": 3
+    },
+    "windows": {
+      "collected": 70,
+      "failures": 0,
+      "passed": 70,
+      "skip_basis": "owner macOS execution amendment and Windows-only tests",
+      "skipped": 0
+    }
+  },
+  "wheel_bytes_identical_three_platforms": true
+}

@@ -1,0 +1,33 @@
+{
+  "base": "acd44089b8671859abcc6377415cbe1ea7839914",
+  "deployment": false,
+  "deviations": [
+    "Owner \u00a723 amendment: no native unprivileged macOS execution; whole-tree cleanup requirement unchanged",
+    "Astra product oracle revisions O1-O5 adjudicated separately; original hidden files/scores unchanged",
+    "Two failure causes across three failed CI runs repaired and retained in CI-REPAIRS.json"
+  ],
+  "implementation": {
+    "contract": "capy.independent-application-acceptance/v0",
+    "implementation_commit": "05420906f3966a4c73a2261b1ce48d0a48a4d60c",
+    "implementation_tree": "dc383e96373ed109b5a8560ee8df6d76be8604b5",
+    "version": "0.1.0"
+  },
+  "merged": false,
+  "muse_classification": "high_review_burden",
+  "package_sha256": "bc1efe5cf11bc69a573300cf00a659dd71213055f9647eebc7e6ab4860b1b28d",
+  "product_qualification": "PASSED_UNDER_OWNER_PLATFORM_AMENDMENT",
+  "proposed_next_task": "None authorized",
+  "publication": false,
+  "qualification_ci": 33967453188,
+  "qualification_head": "fc7eebdd6c4b47fd5186d2a81c834222061d2e8c",
+  "remaining": [
+    "Review E",
+    "strict main fast-forward",
+    "post-merge CI and remote verification"
+  ],
+  "repository": "gazeromo/capy-application-acceptor",
+  "review_e": "PENDING_EXACT_EVIDENCE_AND_CLOSURE_DELTA",
+  "runtime_mutation": false,
+  "schema": "capy.independent-application-acceptance-closure/v0",
+  "status": "REVIEW_CANDIDATE"
+}

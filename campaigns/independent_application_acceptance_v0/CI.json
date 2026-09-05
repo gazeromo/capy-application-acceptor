@@ -1,0 +1,381 @@
+{
+  "conclusion": "success",
+  "databaseId": 33967453188,
+  "headSha": "fc7eebdd6c4b47fd5186d2a81c834222061d2e8c",
+  "jobs": [
+    {
+      "completedAt": "2026-09-05T12:56:47Z",
+      "conclusion": "success",
+      "databaseId": 101309954666,
+      "name": "qualify (macos-latest)",
+      "startedAt": "2026-09-05T12:56:23Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-05T12:56:25Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-05T12:56:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:28Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "startedAt": "2026-09-05T12:56:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:28Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 3,
+          "startedAt": "2026-09-05T12:56:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:35Z",
+          "conclusion": "success",
+          "name": "Full-history and worktree secret scan",
+          "number": 4,
+          "startedAt": "2026-09-05T12:56:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:36Z",
+          "conclusion": "success",
+          "name": "Source tests",
+          "number": 5,
+          "startedAt": "2026-09-05T12:56:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:36Z",
+          "conclusion": "success",
+          "name": "Compile source, tests and oracle",
+          "number": 6,
+          "startedAt": "2026-09-05T12:56:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:42Z",
+          "conclusion": "success",
+          "name": "Reproducible package and offline installed-wheel journeys",
+          "number": 7,
+          "startedAt": "2026-09-05T12:56:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:43Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 8,
+          "startedAt": "2026-09-05T12:56:42Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:43Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 15,
+          "startedAt": "2026-09-05T12:56:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:44Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 16,
+          "startedAt": "2026-09-05T12:56:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:44Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 17,
+          "startedAt": "2026-09-05T12:56:44Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/gazeromo/capy-application-acceptor/actions/runs/33967453188/job/101309954666"
+    },
+    {
+      "completedAt": "2026-09-05T13:02:14Z",
+      "conclusion": "success",
+      "databaseId": 101309954715,
+      "name": "qualify (ubuntu-latest)",
+      "startedAt": "2026-09-05T12:56:18Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-05T12:56:20Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-05T12:56:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:21Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "startedAt": "2026-09-05T12:56:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:21Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 3,
+          "startedAt": "2026-09-05T12:56:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:22Z",
+          "conclusion": "success",
+          "name": "Full-history and worktree secret scan",
+          "number": 4,
+          "startedAt": "2026-09-05T12:56:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:57:38Z",
+          "conclusion": "success",
+          "name": "Source tests",
+          "number": 5,
+          "startedAt": "2026-09-05T12:56:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:57:38Z",
+          "conclusion": "success",
+          "name": "Compile source, tests and oracle",
+          "number": 6,
+          "startedAt": "2026-09-05T12:57:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:02:08Z",
+          "conclusion": "success",
+          "name": "Reproducible package and offline installed-wheel journeys",
+          "number": 7,
+          "startedAt": "2026-09-05T12:57:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:02:10Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 8,
+          "startedAt": "2026-09-05T13:02:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:02:10Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 15,
+          "startedAt": "2026-09-05T13:02:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:02:10Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 16,
+          "startedAt": "2026-09-05T13:02:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:02:10Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 17,
+          "startedAt": "2026-09-05T13:02:10Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/gazeromo/capy-application-acceptor/actions/runs/33967453188/job/101309954715"
+    },
+    {
+      "completedAt": "2026-09-05T13:07:07Z",
+      "conclusion": "success",
+      "databaseId": 101309954720,
+      "name": "qualify (windows-latest)",
+      "startedAt": "2026-09-05T12:56:19Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-05T12:56:22Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-05T12:56:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:31Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "startedAt": "2026-09-05T12:56:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:32Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 3,
+          "startedAt": "2026-09-05T12:56:31Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:56:46Z",
+          "conclusion": "success",
+          "name": "Full-history and worktree secret scan",
+          "number": 4,
+          "startedAt": "2026-09-05T12:56:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:58:57Z",
+          "conclusion": "success",
+          "name": "Source tests",
+          "number": 5,
+          "startedAt": "2026-09-05T12:56:46Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T12:58:57Z",
+          "conclusion": "success",
+          "name": "Compile source, tests and oracle",
+          "number": 6,
+          "startedAt": "2026-09-05T12:58:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:07:02Z",
+          "conclusion": "success",
+          "name": "Reproducible package and offline installed-wheel journeys",
+          "number": 7,
+          "startedAt": "2026-09-05T12:58:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:07:04Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 8,
+          "startedAt": "2026-09-05T13:07:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:07:04Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 15,
+          "startedAt": "2026-09-05T13:07:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:07:06Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 16,
+          "startedAt": "2026-09-05T13:07:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:07:06Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 17,
+          "startedAt": "2026-09-05T13:07:06Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/gazeromo/capy-application-acceptor/actions/runs/33967453188/job/101309954720"
+    },
+    {
+      "completedAt": "2026-09-05T13:07:19Z",
+      "conclusion": "success",
+      "databaseId": 101311317097,
+      "name": "compare",
+      "startedAt": "2026-09-05T13:07:11Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-05T13:07:13Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-05T13:07:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:07:14Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "startedAt": "2026-09-05T13:07:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:07:14Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 3,
+          "startedAt": "2026-09-05T13:07:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:07:16Z",
+          "conclusion": "success",
+          "name": "Run actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "number": 4,
+          "startedAt": "2026-09-05T13:07:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:07:16Z",
+          "conclusion": "success",
+          "name": "Compare exact portable bytes and release identity",
+          "number": 5,
+          "startedAt": "2026-09-05T13:07:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:07:16Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 9,
+          "startedAt": "2026-09-05T13:07:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:07:16Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 10,
+          "startedAt": "2026-09-05T13:07:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-05T13:07:16Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 11,
+          "startedAt": "2026-09-05T13:07:16Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/gazeromo/capy-application-acceptor/actions/runs/33967453188/job/101311317097"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/gazeromo/capy-application-acceptor/actions/runs/33967453188"
+}

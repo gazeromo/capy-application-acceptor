@@ -1,0 +1,34 @@
+{
+  "runs": [
+    {
+      "findings": [
+        "Astra Job cleanup accounting zero preceded process-handle signaling (P1)",
+        "Native CRLF stable-failure parsing rejected valid Windows output (Muse-core repair)"
+      ],
+      "head": "7b9a05218d8a06a14d9e59d44d739ef786f99847",
+      "repair_commit": "05420906f3966a4c73a2261b1ce48d0a48a4d60c",
+      "result": "Windows source failure; Ubuntu/macOS qualification passed",
+      "run": 33965233589
+    },
+    {
+      "head": "05420906f3966a4c73a2261b1ce48d0a48a4d60c",
+      "repair_commit": "fc7eebdd6c4b47fd5186d2a81c834222061d2e8c",
+      "result": "Windows 69 source tests, installed journeys and original65 vectors passed; final qualifier temp cleanup failed because its sqlite3 observer connection remained open",
+      "run": 33966837371,
+      "scope": "qualification harness only; no runtime/wheel change"
+    },
+    {
+      "head": "72b57b2e21b1e62f5d32a660b84e9efc5ced6792",
+      "repair_commit": "fc7eebdd6c4b47fd5186d2a81c834222061d2e8c",
+      "result": "Windows70 source tests including retained-handle and missing-notification regressions passed; same final qualifier SQLite observer cleanup failure",
+      "run": 33967088829,
+      "scope": "Qualification harness; no runtime/wheel change"
+    },
+    {
+      "head": "fc7eebdd6c4b47fd5186d2a81c834222061d2e8c",
+      "result": "Full three-platform qualification and portable comparison passed",
+      "run": 33967453188
+    }
+  ],
+  "schema": "capy.acceptor-ci-repairs/v0"
+}

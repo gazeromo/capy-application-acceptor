@@ -1,15 +1,9 @@
 # Current implementation direction
 
-Independent Application Acceptance V0 is authorized through the Capy project
-control record and exact 2026-09-05 Astra/Muse plan. This repository alone owns
-its implementation and closure evidence. Runtime, production, applications,
-Developer and DevKit repositories are outside the write boundary.
+Independent Application Acceptance V0 is implemented in this standalone repository. Runtime source and accepted Developer/DevKit implementation repositories remain outside its write authority. The runtime implementation is pinned by release/IMPLEMENTATION.json; later evidence commits do not change the wheel's identity.
 
-Layered containment passed at eb984cee6d068d700baf37bcf5397327107674b3.
-The public scaffold now defines the contributor-owned acceptance core. Its
-implementation is pending; no package acceptance or coding-quality outcome
-is claimed. Read MUSE-CONTRIBUTOR-TASK.md and spec/ for the frozen contract.
+The exact Muse Spark 1.3 Contributor experiment ended after two preserved runs. Its assessment is high_review_burden: substantial code remains, while process ownership required Astra replacement and further core repairs. Original snapshots, frozen oracle bytes and initial scores remain unchanged.
 
-Muse edits the declared source and contributor test paths only. Astra owns
-Git, hidden evaluation, final review, release, CLI and durability integration.
-Candidate/profile acceptance remains a deterministic machine decision.
+Astra owns final product qualification and closure. Linux/Windows execution requires confirmed descendant cleanup; unprivileged native macOS refuses candidate execution under the explicit owner amendment. Candidate/profile acceptance remains deterministic and model-free.
+
+Current qualification, independent reviews, package and merge status are recorded in campaigns/independent_application_acceptance_v0/. No registry publication, runtime installation, binding, deployment or successor implementation task is authorized.

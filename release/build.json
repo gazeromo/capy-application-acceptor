@@ -1,0 +1,14 @@
+{
+  "byte_identical": true,
+  "clean_builds": 2,
+  "filename": "capy_application_acceptor-0.1.0-py3-none-any.whl",
+  "release": {
+    "contract": "capy.independent-application-acceptance/v0",
+    "implementation_commit": "05420906f3966a4c73a2261b1ce48d0a48a4d60c",
+    "implementation_tree": "dc383e96373ed109b5a8560ee8df6d76be8604b5",
+    "version": "0.1.0"
+  },
+  "schema": "capy.acceptor-build/v0",
+  "sha256": "bc1efe5cf11bc69a573300cf00a659dd71213055f9647eebc7e6ab4860b1b28d",
+  "size_bytes": 218875
+}

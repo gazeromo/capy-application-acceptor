@@ -1,0 +1,28 @@
+{
+  "base": "acd44089b8671859abcc6377415cbe1ea7839914",
+  "base_tree": "c3a5b6ea495387bf87d84f2540f611cc18943b28",
+  "control_authorization_commit": "9f55072788918c4aca7f3a5dd5b1d791cf65dec0",
+  "model_containment_probes": 3,
+  "model_identity_probes": 1,
+  "muse_implementation_runs": 0,
+  "nested_model_agents_observed": 0,
+  "outer": {
+    "effort": "xhigh",
+    "harness": "Codex Desktop",
+    "model": "gpt-6-astra",
+    "session_id": "01a07095-b7ce-7ac0-8923-fd48599407e2",
+    "turn_context_timestamp": "2026-09-05T08:04:23.413Z",
+    "version": "0.153.0-alpha.5"
+  },
+  "plan_sha256": "c2ae4433d3e77b894a537e8e5f42e7bc7c08659eed032627579a9909ff6886ba",
+  "private_data_or_credentials_in_probe_inputs": false,
+  "probe_commit": "fd9e85aaa426505ef239bc7264701b73174173cf",
+  "repository": "gazeromo/capy-application-acceptor",
+  "schema": "capy.independent-acceptance-preflight/v0",
+  "source_bases": {
+    "developer": "9f0d0334e1eedc230f109d13bc9893aac0d56750",
+    "devkit": "24b6418c0ee2dada5a08f78ff6752bb43f9d8e16",
+    "runtime": "61a71a1067183343504305337128ca0af083542f"
+  },
+  "visibility": "public"
+}

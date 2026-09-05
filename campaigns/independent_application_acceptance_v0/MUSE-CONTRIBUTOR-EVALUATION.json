@@ -1,0 +1,462 @@
+{
+  "claim_limit": "Utility on this exact bounded public Python acceptance-core task under this exact Muse Code and Astra configuration only. No general ranking, private-code suitability, long-term reliability, Astra-alone comparison or cost-superiority claim.",
+  "classification": "high_review_burden",
+  "classification_reason": "Substantial material contribution remains, but two P1 and three P2 findings survived the sole repair run despite 65/65 original hidden tests; process ownership required a major Astra replacement. Strong-autonomous and limited-correction classifications are not supported.",
+  "containment": {
+    "accepted_outer_environment": "Disposable Linux container, read-only Git metadata, restricted shell egress, native Muse sandbox enabled; provider key retained only in separate gateway memory. See containment/RECEIPT.json and REVIEW.md.",
+    "cleanup_evidence": "muse/CONTAINMENT-CLEANUP.json",
+    "initial_native_preflight": "MUSE_SANDBOX_UNAVAILABLE before implementation; preserved in preflight/",
+    "native_sandbox_disabled": false,
+    "nested_subagents": 0
+  },
+  "contributor_disclosure": "Public synthetic acceptor repository, frozen task/specs/visible tests and public accepted dependency artifacts only. No private roots, runtime/Developer implementation source, host credentials or personal context.",
+  "cost": "not exposed",
+  "frozen_scaffold": {
+    "commit": "41fb0e2b5c543f41f26b4b71001b8e53b27e23ce",
+    "hidden_file_count": 16,
+    "hidden_oracle_sha256": "34f094d974ff4f377f6b60333aa4697420ebde8a66f0a27062f5dd6797888b58",
+    "task_sha256": "23f59127346fb92e3a9af67a234e4edab0eb44d3b4f08827a4e91f0c70e0fd39",
+    "tree": "9d2eac4e2f5e2ed3d415fed55a2d8626f246222f"
+  },
+  "muse_cli": {
+    "linux_binary_sha256": "4ffcf55f5eb0668643f30c5febd90d188b9a2da65858918444d31f6046940120",
+    "release": "1.0.3-R2198.1"
+  },
+  "observed_model": "muse-spark-1.3-contributor",
+  "observed_provider_responses": 209,
+  "outer_identity": "gpt-6-astra/xhigh",
+  "outer_identity_evidence": "preflight/PREFLIGHT.json; containment/REVIEW.md",
+  "privacy": "Public trajectories contain only visible records; full exports including encrypted private reasoning stay outside the public repository.",
+  "product_acceptance_is_separate": true,
+  "repair_packet_sha256": "99b52d4980d3089b903183a006781849bd353080ee37a8fbd6de85861b804383",
+  "requested_model": "muse-spark-1.3-contributor",
+  "retention": {
+    "attribution_rules": [
+      "Astra-authored oracle defects are excluded from Muse failure counts. Matching independently reproduced product-source defects remain core repairs; do not double-count or exclude them because the oracle also had a defect.",
+      "The owner macOS platform amendment changes authority and is not a Muse coding-quality failure.",
+      "The premature Windows Job cleanup return introduced in Astra replacement code and found by CI33965233589 is an Astra defect, repaired at0542090."
+    ],
+    "compared_astra_implementation": "05420906f3966a4c73a2261b1ce48d0a48a4d60c",
+    "compared_muse_run2": "15075306a3de409e4e33666680466f3076ced3a6",
+    "complete_source_git_numstat": "66\t0\tsrc/capy_application_acceptor/_linux_guard.py\n18\t10\tsrc/capy_application_acceptor/acceptance.py\n15\t0\tsrc/capy_application_acceptor/backend.py\n17\t9\tsrc/capy_application_acceptor/candidate.py\n65\t3\tsrc/capy_application_acceptor/cli.py\n7\t1\tsrc/capy_application_acceptor/codec.py\n8\t4\tsrc/capy_application_acceptor/comparison.py\n15\t0\tsrc/capy_application_acceptor/config.py\n1\t1\tsrc/capy_application_acceptor/interaction.py\n45\t0\tsrc/capy_application_acceptor/locks.py\n176\t259\tsrc/capy_application_acceptor/process.py\n6\t6\tsrc/capy_application_acceptor/profile.py\n46\t0\tsrc/capy_application_acceptor/release_identity.py\n106\t0\tsrc/capy_application_acceptor/service.py\n294\t0\tsrc/capy_application_acceptor/store.py\n169\t0\tsrc/capy_application_acceptor/windows_job.py\n",
+    "core_final_lines": 4004,
+    "core_git_numstat": "18\t10\tsrc/capy_application_acceptor/acceptance.py\n17\t9\tsrc/capy_application_acceptor/candidate.py\n7\t1\tsrc/capy_application_acceptor/codec.py\n8\t4\tsrc/capy_application_acceptor/comparison.py\n1\t1\tsrc/capy_application_acceptor/interaction.py\n176\t259\tsrc/capy_application_acceptor/process.py\n6\t6\tsrc/capy_application_acceptor/profile.py\n",
+    "core_matching_lines": 3770,
+    "core_original_lines": 4061,
+    "implementation_tree": "dc383e96373ed109b5a8560ee8df6d76be8604b5",
+    "method": "Ordered identical source-line matching (difflib SequenceMatcher, autojunk=False), including comments and blank lines. Mechanical retention, not semantic authorship or quality percentage.",
+    "modules": [
+      {
+        "byte_identical": false,
+        "final_lines": 868,
+        "muse_run2_lines": 860,
+        "path": "src/capy_application_acceptor/candidate.py",
+        "unchanged_matching_lines": 851
+      },
+      {
+        "byte_identical": false,
+        "final_lines": 606,
+        "muse_run2_lines": 606,
+        "path": "src/capy_application_acceptor/profile.py",
+        "unchanged_matching_lines": 600
+      },
+      {
+        "byte_identical": false,
+        "final_lines": 458,
+        "muse_run2_lines": 450,
+        "path": "src/capy_application_acceptor/acceptance.py",
+        "unchanged_matching_lines": 440
+      },
+      {
+        "byte_identical": true,
+        "final_lines": 410,
+        "muse_run2_lines": 410,
+        "path": "src/capy_application_acceptor/execution.py",
+        "unchanged_matching_lines": 410
+      },
+      {
+        "byte_identical": false,
+        "final_lines": 188,
+        "muse_run2_lines": 184,
+        "path": "src/capy_application_acceptor/comparison.py",
+        "unchanged_matching_lines": 180
+      },
+      {
+        "byte_identical": true,
+        "final_lines": 108,
+        "muse_run2_lines": 108,
+        "path": "src/capy_application_acceptor/projection.py",
+        "unchanged_matching_lines": 108
+      },
+      {
+        "byte_identical": false,
+        "final_lines": 255,
+        "muse_run2_lines": 338,
+        "path": "src/capy_application_acceptor/process.py",
+        "unchanged_matching_lines": 78
+      },
+      {
+        "byte_identical": false,
+        "final_lines": 241,
+        "muse_run2_lines": 235,
+        "path": "src/capy_application_acceptor/codec.py",
+        "unchanged_matching_lines": 234
+      },
+      {
+        "byte_identical": false,
+        "final_lines": 526,
+        "muse_run2_lines": 526,
+        "path": "src/capy_application_acceptor/interaction.py",
+        "unchanged_matching_lines": 525
+      },
+      {
+        "byte_identical": true,
+        "final_lines": 50,
+        "muse_run2_lines": 50,
+        "path": "src/capy_application_acceptor/scan.py",
+        "unchanged_matching_lines": 50
+      },
+      {
+        "byte_identical": true,
+        "final_lines": 128,
+        "muse_run2_lines": 128,
+        "path": "src/capy_application_acceptor/constants.py",
+        "unchanged_matching_lines": 128
+      },
+      {
+        "byte_identical": true,
+        "final_lines": 166,
+        "muse_run2_lines": 166,
+        "path": "src/capy_application_acceptor/validation.py",
+        "unchanged_matching_lines": 166
+      }
+    ],
+    "new_astra_core_support_files": [
+      {
+        "attribution": "Astra replacement of Muse-owned process-containment responsibility",
+        "lines": 66,
+        "path": "src/capy_application_acceptor/_linux_guard.py",
+        "sha256": "7872e5d153ceda1958c1b85ba4666c804e02bc2db87256476a2193e8b20a6d51"
+      },
+      {
+        "attribution": "Astra replacement of Muse-owned process-containment responsibility",
+        "lines": 169,
+        "path": "src/capy_application_acceptor/windows_job.py",
+        "sha256": "a1e6f202124f54bee83b546dddbedbbfddfeba72508e5234880206d0056c7922"
+      },
+      {
+        "attribution": "Astra replacement of Muse-owned process-containment responsibility",
+        "lines": 15,
+        "path": "src/capy_application_acceptor/backend.py",
+        "sha256": "0f43534ab38fcfc8f084e60312382e0354eabb0acca18c87d39d8fd3dabf251f"
+      }
+    ],
+    "new_astra_core_support_lines": 250,
+    "planned_astra_integration": "CLI, durable store, locking, service orchestration, release identity, build backend, offline packaging and product qualification. Backend helpers above are replacements within the Muse-owned process responsibility, not wholly planned integration.",
+    "schema": "capy.muse-attribution-diff/v0"
+  },
+  "review": "Review D independently accepts high_review_burden; see REVIEWS.md.",
+  "runs": [
+    {
+      "config": {
+        "argv": [
+          "docker",
+          "exec",
+          "-i",
+          "capy-muse-worker-01a07095",
+          "muse",
+          "exec",
+          "--json",
+          "--model",
+          "muse-spark-1.3-contributor",
+          "--reasoning-effort",
+          "xhigh",
+          "--api-key-stdin",
+          "--disable-approval",
+          "--approval-judge",
+          "off",
+          "--sandbox-network",
+          "restricted",
+          "--trust-workspace",
+          "--no-foreign-personal-context",
+          "--disable-web-tools",
+          "--max-model-steps",
+          "120",
+          "--max-tool-output-bytes",
+          "32768",
+          "--session-id",
+          "077fabe2-d5f7-4d3d-941d-eea83cf93002",
+          "--workspace",
+          "/workspace",
+          "--prompt-file",
+          "/workspace/MUSE-CONTRIBUTOR-TASK.md"
+        ],
+        "base_commit": "41fb0e2b5c543f41f26b4b71001b8e53b27e23ce",
+        "base_tree": "9d2eac4e2f5e2ed3d415fed55a2d8626f246222f",
+        "binary_sha256_before": "4ffcf55f5eb0668643f30c5febd90d188b9a2da65858918444d31f6046940120",
+        "credential_location": "gateway memory only; separate worker capability on stdin",
+        "hidden_sha256": "34f094d974ff4f377f6b60333aa4697420ebde8a66f0a27062f5dd6797888b58",
+        "maximum_wall_seconds": 2400,
+        "mode": "passive_no_implementation_feedback",
+        "prompt_sha256": "23f59127346fb92e3a9af67a234e4edab0eb44d3b4f08827a4e91f0c70e0fd39",
+        "run_number": 1,
+        "session_id": "077fabe2-d5f7-4d3d-941d-eea83cf93002"
+      },
+      "mid_run_astra_interventions": 0,
+      "nested_subagents": 0,
+      "original_hidden": {
+        "passed": 62,
+        "total": 65
+      },
+      "provenance": {
+        "astra_interventions": 0,
+        "cli_binary_unchanged": true,
+        "cost": "not exposed",
+        "diagnostic_note": "Redacted durable export reports110 gaps and110 omitted live-only records. The separately retained complete live JSONL stream binds observable commands/tool output. Private reasoning is neither published nor assessed.",
+        "export_diagnostics": {
+          "duplicate_records": 0,
+          "gaps": 110,
+          "omitted_live_only": 110,
+          "unknown_payload_kinds": 1,
+          "unparseable_lines": 0
+        },
+        "export_sha256": "de78519c8bf85b1ef112a3f817a29d0c934fe18082656a2d1086431e8c69f670",
+        "model_completion_count": 110,
+        "provider_response_models": {
+          "muse-spark-1.3-contributor": 110
+        },
+        "public_trajectory_sha256": "554a6197370e57c3c0d8064c88c70b3073fc81ec28ab1413bcaf2a4907f3c139",
+        "session_terminated_abnormally": false,
+        "sessions": [
+          {
+            "accepted_spawns": [],
+            "is_copied_context": false,
+            "root_session_id": "077fabe2-d5f7-4d3d-941d-eea83cf93002",
+            "saw_history_gap": true,
+            "session_end": {
+              "exit_reason": "clean",
+              "uptime_ms": 1332808
+            },
+            "session_id": "077fabe2-d5f7-4d3d-941d-eea83cf93002",
+            "step_count": 3470,
+            "trajectory_id": "trajectory_077fabe2-d5f7-4d3d-941d-eea83cf93002",
+            "turn_count": 1
+          }
+        ],
+        "terminal": [
+          {
+            "causation_id": "9ca875ff-0eb3-4baa-b078-6d1c60e59b5e",
+            "durability": "durable",
+            "id": "018f0000-0000-7000-8000-00000000d4e3",
+            "payload": {
+              "command_id": "9ca875ff-0eb3-4baa-b078-6d1c60e59b5e",
+              "kind": "run_terminal",
+              "reason": null,
+              "run_stream": {
+                "id": "9ca875ff-0eb3-4baa-b078-6d1c60e59b5e",
+                "kind": "run"
+              },
+              "terminal": "completed",
+              "text": "Implemented acceptance core V0 in `/workspace`.\n\nChanged files:\n- [candidate.py](/workspace/src/capy_application_acceptor/candidate.py)\n- [profile.py](/workspace/src/capy_application_acceptor/profile.py)\n- [acceptance.py](/workspace/src/capy_application_acceptor/acceptance.py)\n- [constants.py](/workspace/src/capy_application_acceptor/constants.py)\n- [codec.py](/workspace/src/capy_application_acceptor/codec.py)\n- [validation.py](/workspace/src/capy_application_acceptor/validation.py)\n- [interaction.py](/workspace/src/capy_application_acceptor/interaction.py)\n- [scan.py](/workspace/src/capy_application_acceptor/scan.py)\n- [process.py](/workspace/src/capy_application_acceptor/process.py)\n- [execution.py](/workspace/src/capy_application_acceptor/execution.py)\n- [comparison.py](/workspace/src/capy_application_acceptor/comparison.py)\n- [projection.py](/workspace/src/capy_application_acceptor/projection.py)\n- [test_extra.py](/workspace/tests/contributor/test_extra.py)\n\nPreserved entrypoints `read_candidate`, `read_profile`, `evaluate`. Stdlib only, no DevKit/Developer imports.\n\nVerification observed:\n- `PYTHONPATH=src python3 -m unittest discover -s tests -v`: 25 tests OK (12 visible + 13 contributor) in ~41s.\n- `python3 -m compileall -q src tests`: OK.\n- `tools/core_driver.py` with copied greeting/report fixtures and temp release JSON: ACCEPTED, exit 0; artifact `text-report.txt` 19 bytes, sha `48bb3ddb...`.\n\nRepaired in-task: wheel filename must be exact for `pip install --no-index --no-deps`; fixed stderr capture missing append in bounded reader.\n\nUncertainty:\n- Release malformed code uses `RELEASE_INVALID`; spec names no code.\n- Profile unknown-field mapped to integrity, value violations to invalid; toolchain mismatch to untrusted.\n- Hidden CSV/resource, receipt-tamper, timeout/output vectors not available locally; resource path verified with synthetic one-slot app, timeout/output verified via `run_bounded` unit probes only.\n- Windows paths, remote `git://` source, and large-boundary cases not exercised.\n\nBlocker: none open.\n"
+            },
+            "payload_schema_version": 1,
+            "payload_type": "run.terminal.completed",
+            "record_type": "event",
+            "recorded_at": 1780531400004499,
+            "schema_version": 1,
+            "sequence": 2252,
+            "stream": {
+              "id": "077fabe2-d5f7-4d3d-941d-eea83cf93002",
+              "kind": "session"
+            }
+          }
+        ],
+        "usage_note": "Provider-reported aggregate across110 completions. cached_tokens and cache_read_tokens overlap; do not sum them. Export session step_count counts runtime records, not model calls.",
+        "usage_totals_as_reported": {
+          "cache_read_tokens": 16632891,
+          "cache_write_tokens": 0,
+          "cached_tokens": 16632891,
+          "input_tokens": 17192081,
+          "output_tokens": 105645,
+          "reasoning_tokens": 43751
+        },
+        "wall_seconds": 1338.067
+      },
+      "run": 1,
+      "scope": {
+        "added": [
+          "src/capy_application_acceptor/codec.py",
+          "src/capy_application_acceptor/comparison.py",
+          "src/capy_application_acceptor/constants.py",
+          "src/capy_application_acceptor/execution.py",
+          "src/capy_application_acceptor/interaction.py",
+          "src/capy_application_acceptor/process.py",
+          "src/capy_application_acceptor/projection.py",
+          "src/capy_application_acceptor/scan.py",
+          "src/capy_application_acceptor/validation.py",
+          "tests/contributor/test_extra.py"
+        ],
+        "base": "41fb0e2b5c543f41f26b4b71001b8e53b27e23ce",
+        "changed": [
+          "src/capy_application_acceptor/acceptance.py",
+          "src/capy_application_acceptor/candidate.py",
+          "src/capy_application_acceptor/profile.py"
+        ],
+        "hidden_hashes_unchanged": true,
+        "scope_violations": [],
+        "snapshot": "/Users/gazeromo/.local/share/capy-acceptor-campaign/01a07095/run-1-untouched"
+      },
+      "snapshot": {
+        "attribution": "Exact Muse Spark 1.3 Contributor Run 1 output; Astra mechanical snapshot commit; no source edits before scoring",
+        "commit": "fec88e377a12039826a5afa3388b8bb3dd7d4b64",
+        "parent": "41fb0e2b5c543f41f26b4b71001b8e53b27e23ce",
+        "tree": "9c885360988665e47ad09884b0fa7e87eb6b31ed"
+      },
+      "source_review": {
+        "P0": 0,
+        "P1": 5,
+        "P2": 2
+      },
+      "visible": {
+        "contributor_authored_tests": 13,
+        "frozen_tests": 12,
+        "passed": 25,
+        "total": 25
+      }
+    },
+    {
+      "config": {
+        "argv": [
+          "docker",
+          "exec",
+          "-i",
+          "capy-muse-worker-01a07095",
+          "muse",
+          "exec",
+          "--json",
+          "--model",
+          "muse-spark-1.3-contributor",
+          "--reasoning-effort",
+          "xhigh",
+          "--api-key-stdin",
+          "--disable-approval",
+          "--approval-judge",
+          "off",
+          "--sandbox-network",
+          "restricted",
+          "--trust-workspace",
+          "--no-foreign-personal-context",
+          "--disable-web-tools",
+          "--max-model-steps",
+          "120",
+          "--max-tool-output-bytes",
+          "32768",
+          "--session-id",
+          "aec7148d-fba5-49c9-8e61-53c7c169ead5",
+          "--workspace",
+          "/workspace",
+          "--prompt-file",
+          "/tmp/MUSE-REPAIR-TASK.md"
+        ],
+        "base_commit": "fec88e377a12039826a5afa3388b8bb3dd7d4b64",
+        "base_tree": "9c885360988665e47ad09884b0fa7e87eb6b31ed",
+        "binary_sha256_before": "4ffcf55f5eb0668643f30c5febd90d188b9a2da65858918444d31f6046940120",
+        "credential_location": "gateway memory only; separate worker capability on stdin",
+        "hidden_sha256": "34f094d974ff4f377f6b60333aa4697420ebde8a66f0a27062f5dd6797888b58",
+        "maximum_wall_seconds": 2400,
+        "mode": "one_frozen_causal_repair_packet_then_passive",
+        "prompt_sha256": "99b52d4980d3089b903183a006781849bd353080ee37a8fbd6de85861b804383",
+        "run_number": 2,
+        "session_id": "aec7148d-fba5-49c9-8e61-53c7c169ead5"
+      },
+      "mid_run_astra_interventions": 0,
+      "nested_subagents": 0,
+      "original_hidden": {
+        "passed": 65,
+        "total": 65
+      },
+      "provenance": {
+        "astra_interventions_after_frozen_repair_packet": 0,
+        "cli_binary_unchanged": true,
+        "cost": "not exposed",
+        "export_diagnostics": {
+          "duplicate_records": 0,
+          "gaps": 107,
+          "omitted_live_only": 107,
+          "unknown_payload_kinds": 1,
+          "unparseable_lines": 0
+        },
+        "export_sha256": "81985695b2546d6729abfd62414701ca0c460031487ee8fd20ea5a34e0a0f8eb",
+        "model_completion_count": 99,
+        "provider_response_models": {
+          "muse-spark-1.3-contributor": 99
+        },
+        "public_trajectory_sha256": "13fd4927512c2a7f7e890225c1ecac81de895e77fe371196530d0f98e38eebc6",
+        "session_terminated_abnormally": false,
+        "sessions": [
+          {
+            "accepted_spawns": [],
+            "is_copied_context": false,
+            "root_session_id": "aec7148d-fba5-49c9-8e61-53c7c169ead5",
+            "saw_history_gap": true,
+            "session_end": {
+              "exit_reason": "clean",
+              "uptime_ms": 969572
+            },
+            "session_id": "aec7148d-fba5-49c9-8e61-53c7c169ead5",
+            "step_count": 3158,
+            "trajectory_id": "trajectory_aec7148d-fba5-49c9-8e61-53c7c169ead5",
+            "turn_count": 1
+          }
+        ],
+        "usage_note": "Provider aggregate; cached_tokens and cache_read_tokens overlap, do not add them. Export session step_count is not a model-call count.",
+        "usage_totals_as_reported": {
+          "cache_read_tokens": 14879426,
+          "cache_write_tokens": 0,
+          "cached_tokens": 14879426,
+          "input_tokens": 15102851,
+          "output_tokens": 85260,
+          "reasoning_tokens": 47721
+        },
+        "wall_seconds": 972.648
+      },
+      "run": 2,
+      "scope": {
+        "added": [
+          "tests/contributor/test_repair2.py"
+        ],
+        "base": "fec88e377a12039826a5afa3388b8bb3dd7d4b64",
+        "changed": [
+          "src/capy_application_acceptor/acceptance.py",
+          "src/capy_application_acceptor/candidate.py",
+          "src/capy_application_acceptor/comparison.py",
+          "src/capy_application_acceptor/execution.py",
+          "src/capy_application_acceptor/process.py",
+          "src/capy_application_acceptor/profile.py"
+        ],
+        "hidden_hashes_unchanged": true,
+        "scope_violations": [],
+        "snapshot": "/Users/gazeromo/.local/share/capy-acceptor-campaign/01a07095/run-2-untouched"
+      },
+      "snapshot": {
+        "attribution": "Exact Muse Spark 1.3 Contributor Run 2 output; Astra mechanical snapshot only, no source edits before scoring",
+        "commit": "15075306a3de409e4e33666680466f3076ced3a6",
+        "parent": "fec88e377a12039826a5afa3388b8bb3dd7d4b64",
+        "tree": "f52442530be6d17a14b356b280da7b0252a24114"
+      },
+      "source_review": {
+        "P0": 0,
+        "P1": 2,
+        "P2": 3
+      },
+      "visible": {
+        "contributor_authored_tests": 28,
+        "frozen_tests": 12,
+        "passed": 40,
+        "total": 40
+      }
+    }
+  ],
+  "schema": "capy.muse-contributor-evaluation/v0",
+  "usage_caution": "Input/output/reasoning/cache values are preserved as reported per run. Cache counters overlap and must not be added. Export step_count is not model-call count. Full export hashes retained; live-only omissions and export gaps disclosed in each provenance record."
+}

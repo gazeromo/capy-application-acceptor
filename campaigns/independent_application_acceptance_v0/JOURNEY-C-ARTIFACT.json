@@ -1,0 +1,144 @@
+{
+  "acceptance_id": "acc_2034db42fdbeaca6364489be29f0f173",
+  "actual_developer_verification": true,
+  "artifact_controls": [
+    {
+      "candidate_sha256": "1a21563c540ba59cbbad80d3a487c94e0e1e57eb8ee70912056b0ca0196a35c7",
+      "classification": "REJECTED_ARTIFACT_SET_MISMATCH",
+      "name": "C_control_missing",
+      "passed": true,
+      "profile_sha256": "63d9ff5bde2899fee59da23914293045d2db6364c8255a81720ba69afc24ac87"
+    },
+    {
+      "candidate_sha256": "216fad7e86fb23e0a199b1ec1e225b494af0406f74f4e867d85f8211b7b1bede",
+      "classification": "REJECTED_ARTIFACT_SET_MISMATCH",
+      "name": "C_control_extra",
+      "passed": true,
+      "profile_sha256": "63d9ff5bde2899fee59da23914293045d2db6364c8255a81720ba69afc24ac87"
+    },
+    {
+      "candidate_sha256": "1467ded5eca4e3dc434468fcda1d68dc78e171e1cf28f6429c4e84233b3b2999",
+      "classification": "REJECTED_ARTIFACT_BYTES_MISMATCH",
+      "name": "C_control_wrong_bytes",
+      "passed": true,
+      "profile_sha256": "63d9ff5bde2899fee59da23914293045d2db6364c8255a81720ba69afc24ac87"
+    },
+    {
+      "candidate_sha256": "852108d2251deea28305a1d64ec3652c7433cce798790bb1c87bc0ff00ca1978",
+      "classification": "REJECTED_APPLICATION_EXIT",
+      "name": "C_control_undeclared",
+      "passed": true,
+      "profile_sha256": "63d9ff5bde2899fee59da23914293045d2db6364c8255a81720ba69afc24ac87"
+    }
+  ],
+  "candidate": "journeys/C_verified_artifact/candidate.capyrc",
+  "candidate_sha256": "72f11e6ea927648e1c5dcb26a9b7062d3593850ca11dc362ece21f273f17bff9",
+  "cases": [
+    {
+      "case_id": "normal",
+      "classification": "CASE_MATCHED",
+      "expected": {
+        "artifacts": [
+          {
+            "filename": "summary.json",
+            "sha256": "11caed2cb95ee682c32ab6e83cc80ddef438f249091c29cd7f10b22df6164c77",
+            "size_bytes": 38
+          }
+        ],
+        "failure_code": null,
+        "result_sha256": "7e4c5058eaa03c19eda39ed65b156350a88ef7fc376164c915688d4e8504b2d0",
+        "status": "ok"
+      },
+      "matched": true,
+      "observed": {
+        "artifacts": [
+          {
+            "filename": "summary.json",
+            "sha256": "11caed2cb95ee682c32ab6e83cc80ddef438f249091c29cd7f10b22df6164c77",
+            "size_bytes": 38
+          }
+        ],
+        "failure_code": null,
+        "result_sha256": "7e4c5058eaa03c19eda39ed65b156350a88ef7fc376164c915688d4e8504b2d0",
+        "status": "ok"
+      }
+    },
+    {
+      "case_id": "zero",
+      "classification": "CASE_MATCHED",
+      "expected": {
+        "artifacts": [
+          {
+            "filename": "summary.json",
+            "sha256": "a3a6ec8ce30df7017da32f5c56671f96ff2a393050986c4157164127535bc504",
+            "size_bytes": 36
+          }
+        ],
+        "failure_code": null,
+        "result_sha256": "c52840133699480500752933869e46ec45facfc29e8b908f4db5e357e719e456",
+        "status": "ok"
+      },
+      "matched": true,
+      "observed": {
+        "artifacts": [
+          {
+            "filename": "summary.json",
+            "sha256": "a3a6ec8ce30df7017da32f5c56671f96ff2a393050986c4157164127535bc504",
+            "size_bytes": 36
+          }
+        ],
+        "failure_code": null,
+        "result_sha256": "c52840133699480500752933869e46ec45facfc29e8b908f4db5e357e719e456",
+        "status": "ok"
+      }
+    },
+    {
+      "case_id": "invalid",
+      "classification": "CASE_MATCHED",
+      "expected": {
+        "artifacts": [],
+        "failure_code": "PRODUCT_CSV_INVALID",
+        "result_sha256": null,
+        "status": "failed"
+      },
+      "matched": true,
+      "observed": {
+        "artifacts": [],
+        "failure_code": "PRODUCT_CSV_INVALID",
+        "result_sha256": null,
+        "status": "failed"
+      }
+    },
+    {
+      "case_id": "empty",
+      "classification": "CASE_MATCHED",
+      "expected": {
+        "artifacts": [],
+        "failure_code": "PRODUCT_CSV_EMPTY",
+        "result_sha256": null,
+        "status": "failed"
+      },
+      "matched": true,
+      "observed": {
+        "artifacts": [],
+        "failure_code": "PRODUCT_CSV_EMPTY",
+        "result_sha256": null,
+        "status": "failed"
+      }
+    }
+  ],
+  "classification": "ACCEPTED",
+  "copied_oracle_valid": true,
+  "document": "journeys/C_verified_artifact/document.json",
+  "document_sha256": "0cfa35a07f5333a34ab0baf132d2e72af23dde03a68e1e3189e9782c5a38930a",
+  "name": "C_verified_artifact",
+  "passed": true,
+  "platforms": [
+    "Ubuntu",
+    "Windows"
+  ],
+  "profile": "journeys/C_verified_artifact/profile.capya",
+  "profile_sha256": "63d9ff5bde2899fee59da23914293045d2db6364c8255a81720ba69afc24ac87",
+  "provenance": "../../tests/fixtures/product/DEVELOPER-PROVENANCE.json",
+  "schema": "capy.acceptor-product-journey/v0"
+}

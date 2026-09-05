@@ -1,0 +1,74 @@
+{
+  "files": {
+    "MUSE-CONTRIBUTOR-TASK": {
+      "path": "MUSE-CONTRIBUTOR-TASK.md",
+      "sha256": "23f59127346fb92e3a9af67a234e4edab0eb44d3b4f08827a4e91f0c70e0fd39"
+    },
+    "MUSE-RUN-1-CONFIG": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-1/config.json",
+      "sha256": "6642ac9328c6402d315864753198c732ff520c9d92321ca591788302de18f4d7"
+    },
+    "MUSE-RUN-1-DIFF": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-1/git-diff.patch",
+      "sha256": "d4ce762b3a94dce30d1e172d0c57d49d4180256ca75d40c76c36b5a74fa3b4bf"
+    },
+    "MUSE-RUN-1-EVENTS": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-1/trajectory-visible.jsonl",
+      "sha256": "554a6197370e57c3c0d8064c88c70b3073fc81ec28ab1413bcaf2a4907f3c139"
+    },
+    "MUSE-RUN-1-EXPORT-REDACTED": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-1/PROVENANCE-PUBLIC.json",
+      "sha256": "b1a4352f85d5b24f13b41e733cff5a11268b31f9b54fead8516b1f613ab3df10"
+    },
+    "MUSE-RUN-1-HIDDEN-SCORE": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-1/HIDDEN-RESULT.json",
+      "sha256": "1adbf1475c6f62187257d0a9097eb5b62be12c7aaad570acb2ca4edb2d40e3af"
+    },
+    "MUSE-RUN-1-PROMPT": {
+      "path": "MUSE-CONTRIBUTOR-TASK.md",
+      "sha256": "23f59127346fb92e3a9af67a234e4edab0eb44d3b4f08827a4e91f0c70e0fd39"
+    },
+    "MUSE-RUN-1-RECEIPT": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-1/commit.json",
+      "sha256": "5014a6cb4506df45ba5bd93e7955f145499f60e55172fef62c56c19c1cced43a"
+    },
+    "MUSE-RUN-1-VISIBLE-SCORE": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-1/visible-tests.txt",
+      "sha256": "5002d4322d2c0e649c0367b7e1b12fe04960b06a77921487926a4a6be7b72bf9"
+    },
+    "MUSE-RUN-2-CONFIG": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-2/config.json",
+      "sha256": "3a3ddacba793f49abab9bb7356ee6aec811e1989e1d0b3425f7b6140b6e5386c"
+    },
+    "MUSE-RUN-2-DIFF": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-2/git-diff.patch",
+      "sha256": "f6491f478cc86aacb0ca17b09cc48f25be6cf0446da246592cedc08024738099"
+    },
+    "MUSE-RUN-2-EVENTS": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-2/trajectory-visible.jsonl",
+      "sha256": "13fd4927512c2a7f7e890225c1ecac81de895e77fe371196530d0f98e38eebc6"
+    },
+    "MUSE-RUN-2-EXPORT-REDACTED": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-2/PROVENANCE-PUBLIC.json",
+      "sha256": "b77cadc0bf57d50cc3d2e08003d0b19c1e81c7a4950132c99cb621de4b9c3de5"
+    },
+    "MUSE-RUN-2-HIDDEN-SCORE": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-2/HIDDEN-RESULT.json",
+      "sha256": "6509d8dbb2cf755b7790c990f7f863de1cfa3bff47a64772f8301f6f0bd6a4b7"
+    },
+    "MUSE-RUN-2-PROMPT": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/MUSE-RUN-2-TASK.md",
+      "sha256": "99b52d4980d3089b903183a006781849bd353080ee37a8fbd6de85861b804383"
+    },
+    "MUSE-RUN-2-RECEIPT": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-2/commit.json",
+      "sha256": "c4bc894d3fec9fd034f85aa33ce962708d09253c686f03b3b100590b52aa5d51"
+    },
+    "MUSE-RUN-2-VISIBLE-SCORE": {
+      "path": "campaigns/independent_application_acceptance_v0/muse/run-2/visible-tests.txt",
+      "sha256": "18f1d72f1c67a4dad1f8e7997ce22cdcc5859b58e7d59d8872a873b8514739dc"
+    }
+  },
+  "note": "Required logical deliverables resolve to these exact preserved files; exports expose public provenance only, not private reasoning.",
+  "schema": "capy.muse-evidence-index/v0"
+}

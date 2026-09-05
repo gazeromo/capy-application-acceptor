@@ -1,0 +1,21 @@
+{
+  "after_runs": "Separate Astra Git commits repair accepted-input grammar, metadata bounds, strict values and precedence, process ownership, native Windows framing; integrate CLI/durability/build/qualification. Product oracle revisions are independently adjudicated. No silent edits to Muse snapshots or original scores.",
+  "before_runs": "Astra owned scaffold/specifications/public fixtures and hidden oracle freeze; containment was repaired before any implementation run. Exact first run output scored before Astra source edits.",
+  "contributor_runs": 2,
+  "further_muse_runs": 0,
+  "original_hidden_mutations": 0,
+  "post_muse_commits_through_implementation": [
+    "b2cc966799ebd20e1adcae3c5d4cd1463f6a56f5 Preserve Muse experiment scores reviews and original frozen oracle",
+    "9497edb70e751aa2f62dc374997ed4a3946da823 Astra: correct independently adjudicated oracle path and numeric type defects",
+    "c3828271d153bb7bf24558bdae99770b8c226694 Astra: integrate durable acceptance CLI and repair reviewed core invariants",
+    "d48600ad3b7267dffda739569f8812f08137f24d Astra: include proprietary license and add three-platform package qualification",
+    "a14dff5070b22e24025d4a866a31c2e08aae635a Astra: repair independently reviewed product-oracle pairing and causal projections",
+    "7b9a05218d8a06a14d9e59d44d739ef786f99847 Astra: enforce qualified execution backends and owner-authorized macOS refusal",
+    "05420906f3966a4c73a2261b1ce48d0a48a4d60c Astra: confirm Windows process termination and parse native line endings"
+  ],
+  "repair_packet_sha256": "99b52d4980d3089b903183a006781849bd353080ee37a8fbd6de85861b804383",
+  "repair_packets": 1,
+  "run1_mid_run": 0,
+  "run2_mid_run": 0,
+  "schema": "capy.astra-interventions/v0"
+}

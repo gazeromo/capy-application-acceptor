@@ -1,0 +1,125 @@
+{
+  "attribution_rules": [
+    "Astra-authored oracle defects are excluded from Muse failure counts. Matching independently reproduced product-source defects remain core repairs; do not double-count or exclude them because the oracle also had a defect.",
+    "The owner macOS platform amendment changes authority and is not a Muse coding-quality failure.",
+    "The premature Windows Job cleanup return introduced in Astra replacement code and found by CI33965233589 is an Astra defect, repaired at0542090."
+  ],
+  "compared_astra_implementation": "05420906f3966a4c73a2261b1ce48d0a48a4d60c",
+  "compared_muse_run2": "15075306a3de409e4e33666680466f3076ced3a6",
+  "complete_source_git_numstat": "66\t0\tsrc/capy_application_acceptor/_linux_guard.py\n18\t10\tsrc/capy_application_acceptor/acceptance.py\n15\t0\tsrc/capy_application_acceptor/backend.py\n17\t9\tsrc/capy_application_acceptor/candidate.py\n65\t3\tsrc/capy_application_acceptor/cli.py\n7\t1\tsrc/capy_application_acceptor/codec.py\n8\t4\tsrc/capy_application_acceptor/comparison.py\n15\t0\tsrc/capy_application_acceptor/config.py\n1\t1\tsrc/capy_application_acceptor/interaction.py\n45\t0\tsrc/capy_application_acceptor/locks.py\n176\t259\tsrc/capy_application_acceptor/process.py\n6\t6\tsrc/capy_application_acceptor/profile.py\n46\t0\tsrc/capy_application_acceptor/release_identity.py\n106\t0\tsrc/capy_application_acceptor/service.py\n294\t0\tsrc/capy_application_acceptor/store.py\n169\t0\tsrc/capy_application_acceptor/windows_job.py\n",
+  "core_final_lines": 4004,
+  "core_git_numstat": "18\t10\tsrc/capy_application_acceptor/acceptance.py\n17\t9\tsrc/capy_application_acceptor/candidate.py\n7\t1\tsrc/capy_application_acceptor/codec.py\n8\t4\tsrc/capy_application_acceptor/comparison.py\n1\t1\tsrc/capy_application_acceptor/interaction.py\n176\t259\tsrc/capy_application_acceptor/process.py\n6\t6\tsrc/capy_application_acceptor/profile.py\n",
+  "core_matching_lines": 3770,
+  "core_original_lines": 4061,
+  "implementation_tree": "dc383e96373ed109b5a8560ee8df6d76be8604b5",
+  "method": "Ordered identical source-line matching (difflib SequenceMatcher, autojunk=False), including comments and blank lines. Mechanical retention, not semantic authorship or quality percentage.",
+  "modules": [
+    {
+      "byte_identical": false,
+      "final_lines": 868,
+      "muse_run2_lines": 860,
+      "path": "src/capy_application_acceptor/candidate.py",
+      "unchanged_matching_lines": 851
+    },
+    {
+      "byte_identical": false,
+      "final_lines": 606,
+      "muse_run2_lines": 606,
+      "path": "src/capy_application_acceptor/profile.py",
+      "unchanged_matching_lines": 600
+    },
+    {
+      "byte_identical": false,
+      "final_lines": 458,
+      "muse_run2_lines": 450,
+      "path": "src/capy_application_acceptor/acceptance.py",
+      "unchanged_matching_lines": 440
+    },
+    {
+      "byte_identical": true,
+      "final_lines": 410,
+      "muse_run2_lines": 410,
+      "path": "src/capy_application_acceptor/execution.py",
+      "unchanged_matching_lines": 410
+    },
+    {
+      "byte_identical": false,
+      "final_lines": 188,
+      "muse_run2_lines": 184,
+      "path": "src/capy_application_acceptor/comparison.py",
+      "unchanged_matching_lines": 180
+    },
+    {
+      "byte_identical": true,
+      "final_lines": 108,
+      "muse_run2_lines": 108,
+      "path": "src/capy_application_acceptor/projection.py",
+      "unchanged_matching_lines": 108
+    },
+    {
+      "byte_identical": false,
+      "final_lines": 255,
+      "muse_run2_lines": 338,
+      "path": "src/capy_application_acceptor/process.py",
+      "unchanged_matching_lines": 78
+    },
+    {
+      "byte_identical": false,
+      "final_lines": 241,
+      "muse_run2_lines": 235,
+      "path": "src/capy_application_acceptor/codec.py",
+      "unchanged_matching_lines": 234
+    },
+    {
+      "byte_identical": false,
+      "final_lines": 526,
+      "muse_run2_lines": 526,
+      "path": "src/capy_application_acceptor/interaction.py",
+      "unchanged_matching_lines": 525
+    },
+    {
+      "byte_identical": true,
+      "final_lines": 50,
+      "muse_run2_lines": 50,
+      "path": "src/capy_application_acceptor/scan.py",
+      "unchanged_matching_lines": 50
+    },
+    {
+      "byte_identical": true,
+      "final_lines": 128,
+      "muse_run2_lines": 128,
+      "path": "src/capy_application_acceptor/constants.py",
+      "unchanged_matching_lines": 128
+    },
+    {
+      "byte_identical": true,
+      "final_lines": 166,
+      "muse_run2_lines": 166,
+      "path": "src/capy_application_acceptor/validation.py",
+      "unchanged_matching_lines": 166
+    }
+  ],
+  "new_astra_core_support_files": [
+    {
+      "attribution": "Astra replacement of Muse-owned process-containment responsibility",
+      "lines": 66,
+      "path": "src/capy_application_acceptor/_linux_guard.py",
+      "sha256": "7872e5d153ceda1958c1b85ba4666c804e02bc2db87256476a2193e8b20a6d51"
+    },
+    {
+      "attribution": "Astra replacement of Muse-owned process-containment responsibility",
+      "lines": 169,
+      "path": "src/capy_application_acceptor/windows_job.py",
+      "sha256": "a1e6f202124f54bee83b546dddbedbbfddfeba72508e5234880206d0056c7922"
+    },
+    {
+      "attribution": "Astra replacement of Muse-owned process-containment responsibility",
+      "lines": 15,
+      "path": "src/capy_application_acceptor/backend.py",
+      "sha256": "0f43534ab38fcfc8f084e60312382e0354eabb0acca18c87d39d8fd3dabf251f"
+    }
+  ],
+  "new_astra_core_support_lines": 250,
+  "planned_astra_integration": "CLI, durable store, locking, service orchestration, release identity, build backend, offline packaging and product qualification. Backend helpers above are replacements within the Muse-owned process responsibility, not wholly planned integration.",
+  "schema": "capy.muse-attribution-diff/v0"
+}

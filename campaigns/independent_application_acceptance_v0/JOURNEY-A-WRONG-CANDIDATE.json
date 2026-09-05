@@ -1,0 +1,22 @@
+{
+  "acceptance_id": "acc_46cd8c13af6d4f893a491724178ff857",
+  "actual_developer_verification": true,
+  "artifact_controls": [],
+  "candidate": "journeys/A_verified_total/candidate.capyrc",
+  "candidate_sha256": "21923a5752a314ca502a141861e614829b3d8b2d006c54622d83d9ca8503aec6",
+  "cases": [],
+  "classification": "REJECTED_INTERACTION_MISMATCH",
+  "copied_oracle_valid": true,
+  "document": "journeys/A_verified_total/document.json",
+  "document_sha256": "c683b16670d7dff30a5c889e77cbb9fe13191d377d0854e150527f56e2583bab",
+  "name": "A_verified_total",
+  "passed": true,
+  "platforms": [
+    "Ubuntu",
+    "Windows"
+  ],
+  "profile": "journeys/A_verified_total/profile.capya",
+  "profile_sha256": "9d4199c41d641c1dba2c07d31bd680986f7f41faea062cf214d7d759da56b893",
+  "provenance": "../../tests/fixtures/product/DEVELOPER-PROVENANCE.json",
+  "schema": "capy.acceptor-product-journey/v0"
+}
