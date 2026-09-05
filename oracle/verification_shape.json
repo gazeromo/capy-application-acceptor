@@ -1,0 +1,206 @@
+{
+  "application_archive": {
+    "sha256": "7541b3a7478010d82aef3cd3dafd5c0592c0a4725c5c18ee6a3d772a8ed6ebf5",
+    "size_bytes": 3383
+  },
+  "application_id": "demo.interaction_fixture",
+  "classification": "VERIFIED",
+  "interaction_contract": {
+    "canonical_sha256": "8b8a9d52b3e2fececf014d67e593356f01cdf8a4afe3187de4c4929581b99689",
+    "canonical_size_bytes": 887,
+    "operation_id": "hello.show",
+    "schema": "capy.application-interaction/dev-v0",
+    "source_member": "interaction.json",
+    "source_sha256": "f9e8c943e8715239957ef49e07b9b4527836f48692b9c07115d70c8e5a36ddd3"
+  },
+  "pipeline": "capy.development-verification-pipeline/v1",
+  "project_id": "prj_68a0478e8e784c2b862938195eb75d8f",
+  "schema": "capy.development-verification-receipt/v1",
+  "session_id": "ses_49d4627803f440e58b84391e9b961496",
+  "source": {
+    "base_commit": "ab344bbdbed4c743fc8738a959daf7f5d3cbd39d",
+    "commit": "ab344bbdbed4c743fc8738a959daf7f5d3cbd39d",
+    "tree": "adfd8c0e7e19f8466e295f105de2b090ed061d0e"
+  },
+  "stages": [
+    {
+      "exit_code": 0,
+      "facts": {
+        "timed_out": false
+      },
+      "name": "toolchain_install",
+      "status": "PASSED",
+      "stderr_truncated_bytes": 0,
+      "stdout_truncated_bytes": 0,
+      "stored_stderr_bytes": 0,
+      "stored_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_stdout_bytes": 313,
+      "stored_stdout_sha256": "a4fcc36557bce1f41f309e3da82759ea2a83458af73740727497aa97aeb088ee"
+    },
+    {
+      "exit_code": 0,
+      "facts": {
+        "candidate_unchanged": true,
+        "timed_out": false
+      },
+      "name": "check",
+      "status": "PASSED",
+      "stderr_truncated_bytes": 0,
+      "stdout_truncated_bytes": 0,
+      "stored_stderr_bytes": 0,
+      "stored_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_stdout_bytes": 41,
+      "stored_stdout_sha256": "ee79c3c363a2db475d33a861fe0d3075cc95f7ce6eebae48da880bb347894e8a"
+    },
+    {
+      "exit_code": 0,
+      "facts": {
+        "candidate_unchanged": true,
+        "timed_out": false
+      },
+      "name": "interaction_check",
+      "status": "PASSED",
+      "stderr_truncated_bytes": 0,
+      "stdout_truncated_bytes": 0,
+      "stored_stderr_bytes": 0,
+      "stored_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_stdout_bytes": 122,
+      "stored_stdout_sha256": "52c8e499ea41bc743092a729d9dfbcff681c4516c56351e9945ddd89a46b6a69"
+    },
+    {
+      "exit_code": 0,
+      "facts": {
+        "candidate_unchanged": true,
+        "timed_out": false
+      },
+      "name": "test",
+      "status": "PASSED",
+      "stderr_truncated_bytes": 0,
+      "stdout_truncated_bytes": 0,
+      "stored_stderr_bytes": 173,
+      "stored_stderr_sha256": "93f970e082d1e3c787f950b442eb8018cec901bbaaf5b09a382505c93e147c48",
+      "stored_stdout_bytes": 41,
+      "stored_stdout_sha256": "ee79c3c363a2db475d33a861fe0d3075cc95f7ce6eebae48da880bb347894e8a"
+    },
+    {
+      "exit_code": 0,
+      "facts": {
+        "candidate_unchanged": true,
+        "timed_out": false
+      },
+      "name": "conform",
+      "status": "PASSED",
+      "stderr_truncated_bytes": 0,
+      "stdout_truncated_bytes": 0,
+      "stored_stderr_bytes": 0,
+      "stored_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_stdout_bytes": 94,
+      "stored_stdout_sha256": "c2da6ae0c37c8a8a473c3cf00b2ad7debc4e57945cc65c51b638a4a9a196954c"
+    },
+    {
+      "exit_code": null,
+      "facts": {},
+      "name": "source_mutation_check",
+      "status": "PASSED",
+      "stderr_truncated_bytes": 0,
+      "stdout_truncated_bytes": 0,
+      "stored_stderr_bytes": 0,
+      "stored_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_stdout_bytes": 0,
+      "stored_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "exit_code": 0,
+      "facts": {
+        "candidate_unchanged": true,
+        "timed_out": false
+      },
+      "name": "pack_a",
+      "status": "PASSED",
+      "stderr_truncated_bytes": 0,
+      "stdout_truncated_bytes": 0,
+      "stored_stderr_bytes": 0,
+      "stored_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_stdout_bytes": 182,
+      "stored_stdout_sha256": "fdfb16c1a962a0e35420fc54348769c2996d705f1ba114b671640ec1ab1db0ef"
+    },
+    {
+      "exit_code": 0,
+      "facts": {
+        "candidate_unchanged": true,
+        "timed_out": false
+      },
+      "name": "pack_b",
+      "status": "PASSED",
+      "stderr_truncated_bytes": 0,
+      "stdout_truncated_bytes": 0,
+      "stored_stderr_bytes": 0,
+      "stored_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_stdout_bytes": 182,
+      "stored_stdout_sha256": "9ab3036a801377d6250ddaa423dafff7978d875ba570a1b4fc29edaf8b7e7fdf"
+    },
+    {
+      "exit_code": null,
+      "facts": {
+        "sha256_a": "7541b3a7478010d82aef3cd3dafd5c0592c0a4725c5c18ee6a3d772a8ed6ebf5",
+        "sha256_b": "7541b3a7478010d82aef3cd3dafd5c0592c0a4725c5c18ee6a3d772a8ed6ebf5",
+        "size_a": 3383,
+        "size_b": 3383
+      },
+      "name": "package_compare",
+      "status": "PASSED",
+      "stderr_truncated_bytes": 0,
+      "stdout_truncated_bytes": 0,
+      "stored_stderr_bytes": 0,
+      "stored_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_stdout_bytes": 0,
+      "stored_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "exit_code": null,
+      "facts": {
+        "sha256": "7541b3a7478010d82aef3cd3dafd5c0592c0a4725c5c18ee6a3d772a8ed6ebf5",
+        "size_bytes": 3383
+      },
+      "name": "archive_preserve",
+      "status": "PASSED",
+      "stderr_truncated_bytes": 0,
+      "stdout_truncated_bytes": 0,
+      "stored_stderr_bytes": 0,
+      "stored_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_stdout_bytes": 0,
+      "stored_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "exit_code": 0,
+      "facts": {
+        "candidate_unchanged": true,
+        "canonical_sha256": "8b8a9d52b3e2fececf014d67e593356f01cdf8a4afe3187de4c4929581b99689",
+        "canonical_size_bytes": 887,
+        "source_sha256": "f9e8c943e8715239957ef49e07b9b4527836f48692b9c07115d70c8e5a36ddd3",
+        "timed_out": false
+      },
+      "name": "interaction_preserve",
+      "status": "PASSED",
+      "stderr_truncated_bytes": 0,
+      "stdout_truncated_bytes": 0,
+      "stored_stderr_bytes": 0,
+      "stored_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_stdout_bytes": 122,
+      "stored_stdout_sha256": "52c8e499ea41bc743092a729d9dfbcff681c4516c56351e9945ddd89a46b6a69"
+    }
+  ],
+  "status": "PASSED",
+  "toolchain": {
+    "authoring_bundle_sha256": "12e492ec2dce11b4227d10bdf9385705a60bc12a88fec0073ff48a87b2a57a57",
+    "contract": "capy.script/dev-v0",
+    "implementation_commit": "1211861edbb512aaefae8c20b207f590fac34c35",
+    "interaction_contract": "capy.application-interaction/dev-v0",
+    "lock_digest": "6ebbdba2b3144e1bfc0874e9ade035d8c60d6a87c35e9eb3b924119df4dd733a",
+    "release_binding_commit": "24b6418c0ee2dada5a08f78ff6752bb43f9d8e16",
+    "wheel_filename": "capy_script_devkit-0.1.0-py3-none-any.whl",
+    "wheel_sha256": "56c9f6c930b21d600a2e8f10da7a3e92f5cfbf1c6d91490d170d1790e5555603"
+  },
+  "verification_id": "ver_8080785b6a35433aa49b23e402bf5888",
+  "verified_at": "2026-09-05T03:52:37.529510Z"
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "capy.acceptor-oracle-revision/v0",
+  "revision": 1,
+  "original_sha256": "b3d00445cc6da570c7bd55173bcc3ff3a96a447ae1f4050ca8ca24ae95a9fba7",
+  "corrected_sha256": "b5ac41674f1854495c87ec58a832daba155fc478551ebfcc35629653822ce06c",
+  "changes": [
+    "O1 source-file grammar distinct from resource/artifact names",
+    "O2 exact canonical JSON comparison of portable receipt bindings"
+  ],
+  "approval": "campaigns/independent_application_acceptance_v0/ORACLE-DEFECT-ADJUDICATION.md",
+  "original_muse_scores_unchanged": true
+}

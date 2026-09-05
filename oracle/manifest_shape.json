@@ -1,0 +1,73 @@
+{
+  "application": {
+    "archive": {
+      "member": "application/application.zip",
+      "sha256": "7541b3a7478010d82aef3cd3dafd5c0592c0a4725c5c18ee6a3d772a8ed6ebf5",
+      "size_bytes": 3383
+    },
+    "contract": "capy.script/dev-v0",
+    "descriptor_sha256": "62ec85b9a4dcbbdbdf2ff1d9fc0f1ee9c9b98ac5a5ca1c2bb119ccde2818589b",
+    "id": "demo.interaction_fixture",
+    "interaction": {
+      "member": "application/interaction.json",
+      "operation_id": "hello.show",
+      "schema": "capy.application-interaction/dev-v0",
+      "sha256": "8b8a9d52b3e2fececf014d67e593356f01cdf8a4afe3187de4c4929581b99689",
+      "size_bytes": 887,
+      "source_member": "interaction.json",
+      "source_sha256": "f9e8c943e8715239957ef49e07b9b4527836f48692b9c07115d70c8e5a36ddd3"
+    }
+  },
+  "handoff": {
+    "binding": "not_performed",
+    "deployment": "not_performed",
+    "independent_acceptance": "required",
+    "installation": "not_performed",
+    "interaction_contract": "included_unaccepted",
+    "publication": "not_performed",
+    "publisher_signature": "not_present",
+    "rollback": "not_assessed",
+    "runtime_import": "not_performed",
+    "runtime_version_digest": "not_assigned",
+    "secret_scan": "not_performed",
+    "state_migration": "not_assessed",
+    "verification": "passed"
+  },
+  "identity_sha256": "396fc7356745fa6924a669749bc48b4bce1f44b3152d6b989970f6afd1cabc9f",
+  "project": {
+    "project_id": "prj_68a0478e8e784c2b862938195eb75d8f"
+  },
+  "release_candidate_id": "rc_396fc7356745fa6924a669749bc48b4b",
+  "schema": "capy.application-release-candidate/v1",
+  "source": {
+    "base_commit": "ab344bbdbed4c743fc8738a959daf7f5d3cbd39d",
+    "commit": "ab344bbdbed4c743fc8738a959daf7f5d3cbd39d",
+    "repository": {
+      "identity_sha256": "fd019c551e0ba43804c5ede6e4612ebce100ad005171409bf0e08e52776060ca",
+      "kind": "local",
+      "public_identity": null
+    },
+    "tree": "adfd8c0e7e19f8466e295f105de2b090ed061d0e"
+  },
+  "toolchain": {
+    "authoring_bundle": {
+      "member": "toolchain/authoring-bundle.zip",
+      "sha256": "12e492ec2dce11b4227d10bdf9385705a60bc12a88fec0073ff48a87b2a57a57",
+      "size_bytes": 31836
+    },
+    "implementation_commit": "1211861edbb512aaefae8c20b207f590fac34c35",
+    "interaction_contract": "capy.application-interaction/dev-v0",
+    "release_binding_commit": "24b6418c0ee2dada5a08f78ff6752bb43f9d8e16",
+    "wheel_filename": "capy_script_devkit-0.1.0-py3-none-any.whl",
+    "wheel_sha256": "56c9f6c930b21d600a2e8f10da7a3e92f5cfbf1c6d91490d170d1790e5555603"
+  },
+  "verification": {
+    "receipt": {
+      "member": "evidence/verification.json",
+      "sha256": "781b70199cb172c93b66e57486fe1ab6cab7294f6b5cedb01fcda7bfa6fc0052",
+      "size_bytes": 6254
+    },
+    "verification_id": "ver_8080785b6a35433aa49b23e402bf5888"
+  },
+  "verified_at": "2026-09-05T03:52:37.529510Z"
+}
