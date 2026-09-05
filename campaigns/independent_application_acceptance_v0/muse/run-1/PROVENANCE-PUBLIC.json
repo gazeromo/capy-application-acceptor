@@ -1,0 +1,74 @@
+{
+  "provider_response_models": {
+    "muse-spark-1.3-contributor": 110
+  },
+  "model_completion_count": 110,
+  "session_terminated_abnormally": false,
+  "sessions": [
+    {
+      "accepted_spawns": [],
+      "is_copied_context": false,
+      "root_session_id": "077fabe2-d5f7-4d3d-941d-eea83cf93002",
+      "saw_history_gap": true,
+      "session_end": {
+        "exit_reason": "clean",
+        "uptime_ms": 1332808
+      },
+      "session_id": "077fabe2-d5f7-4d3d-941d-eea83cf93002",
+      "step_count": 3470,
+      "trajectory_id": "trajectory_077fabe2-d5f7-4d3d-941d-eea83cf93002",
+      "turn_count": 1
+    }
+  ],
+  "terminal": [
+    {
+      "schema_version": 1,
+      "id": "018f0000-0000-7000-8000-00000000d4e3",
+      "stream": {
+        "kind": "session",
+        "id": "077fabe2-d5f7-4d3d-941d-eea83cf93002"
+      },
+      "sequence": 2252,
+      "recorded_at": 1780531400004499,
+      "record_type": "event",
+      "durability": "durable",
+      "causation_id": "9ca875ff-0eb3-4baa-b078-6d1c60e59b5e",
+      "payload_type": "run.terminal.completed",
+      "payload_schema_version": 1,
+      "payload": {
+        "command_id": "9ca875ff-0eb3-4baa-b078-6d1c60e59b5e",
+        "kind": "run_terminal",
+        "reason": null,
+        "run_stream": {
+          "id": "9ca875ff-0eb3-4baa-b078-6d1c60e59b5e",
+          "kind": "run"
+        },
+        "terminal": "completed",
+        "text": "Implemented acceptance core V0 in `/workspace`.\n\nChanged files:\n- [candidate.py](/workspace/src/capy_application_acceptor/candidate.py)\n- [profile.py](/workspace/src/capy_application_acceptor/profile.py)\n- [acceptance.py](/workspace/src/capy_application_acceptor/acceptance.py)\n- [constants.py](/workspace/src/capy_application_acceptor/constants.py)\n- [codec.py](/workspace/src/capy_application_acceptor/codec.py)\n- [validation.py](/workspace/src/capy_application_acceptor/validation.py)\n- [interaction.py](/workspace/src/capy_application_acceptor/interaction.py)\n- [scan.py](/workspace/src/capy_application_acceptor/scan.py)\n- [process.py](/workspace/src/capy_application_acceptor/process.py)\n- [execution.py](/workspace/src/capy_application_acceptor/execution.py)\n- [comparison.py](/workspace/src/capy_application_acceptor/comparison.py)\n- [projection.py](/workspace/src/capy_application_acceptor/projection.py)\n- [test_extra.py](/workspace/tests/contributor/test_extra.py)\n\nPreserved entrypoints `read_candidate`, `read_profile`, `evaluate`. Stdlib only, no DevKit/Developer imports.\n\nVerification observed:\n- `PYTHONPATH=src python3 -m unittest discover -s tests -v`: 25 tests OK (12 visible + 13 contributor) in ~41s.\n- `python3 -m compileall -q src tests`: OK.\n- `tools/core_driver.py` with copied greeting/report fixtures and temp release JSON: ACCEPTED, exit 0; artifact `text-report.txt` 19 bytes, sha `48bb3ddb...`.\n\nRepaired in-task: wheel filename must be exact for `pip install --no-index --no-deps`; fixed stderr capture missing append in bounded reader.\n\nUncertainty:\n- Release malformed code uses `RELEASE_INVALID`; spec names no code.\n- Profile unknown-field mapped to integrity, value violations to invalid; toolchain mismatch to untrusted.\n- Hidden CSV/resource, receipt-tamper, timeout/output vectors not available locally; resource path verified with synthetic one-slot app, timeout/output verified via `run_bounded` unit probes only.\n- Windows paths, remote `git://` source, and large-boundary cases not exercised.\n\nBlocker: none open.\n"
+      }
+    }
+  ],
+  "cli_binary_unchanged": true,
+  "astra_interventions": 0,
+  "export_sha256": "de78519c8bf85b1ef112a3f817a29d0c934fe18082656a2d1086431e8c69f670",
+  "usage_totals_as_reported": {
+    "cache_read_tokens": 16632891,
+    "cache_write_tokens": 0,
+    "cached_tokens": 16632891,
+    "input_tokens": 17192081,
+    "output_tokens": 105645,
+    "reasoning_tokens": 43751
+  },
+  "cost": "not exposed",
+  "usage_note": "Provider-reported aggregate across110 completions. cached_tokens and cache_read_tokens overlap; do not sum them. Export session step_count counts runtime records, not model calls.",
+  "export_diagnostics": {
+    "gaps": 110,
+    "omitted_live_only": 110,
+    "duplicate_records": 0,
+    "unknown_payload_kinds": 1,
+    "unparseable_lines": 0
+  },
+  "diagnostic_note": "Redacted durable export reports110 gaps and110 omitted live-only records. The separately retained complete live JSONL stream binds observable commands/tool output. Private reasoning is neither published nor assessed.",
+  "public_trajectory_sha256": "554a6197370e57c3c0d8064c88c70b3073fc81ec28ab1413bcaf2a4907f3c139",
+  "wall_seconds": 1338.067
+}

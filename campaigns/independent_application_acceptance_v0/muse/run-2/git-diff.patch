@@ -1,0 +1,706 @@
+diff --git a/src/capy_application_acceptor/acceptance.py b/src/capy_application_acceptor/acceptance.py
+index 589d4fa..6b1367e 100644
+--- a/src/capy_application_acceptor/acceptance.py
++++ b/src/capy_application_acceptor/acceptance.py
+@@ -286,7 +286,8 @@ def _trial(candidate, profile, release, work_root: Path, created: list) -> Evalu
+         if observed_entry["status"] == "error":
+             observed_entry["result_sha256"] = None
+             observed_entry["failure_code"] = None
+-        # Classify with precedence.
++        # Classify with precedence. Filesystem anomalies (extra/dotfile/
++        # unsafe/dir/symlink) reject for successful and failed cases.
+         classification = classify_case(
+             expect=case["expect"],
+             timed_out=bool(raw.get("timed_out")),
+@@ -300,6 +301,7 @@ def _trial(candidate, profile, release, work_root: Path, created: list) -> Evalu
+             observed_result=raw.get("observed_result"),
+             observed_failure_code=raw.get("observed_failure_code"),
+             observed_status=raw.get("observed_status", "error"),
++            artifact_anomaly=raw.get("artifact_anomaly"),
+         )
+         matched = classification == "CASE_MATCHED"
+         proj = build_case_projection(
+diff --git a/src/capy_application_acceptor/candidate.py b/src/capy_application_acceptor/candidate.py
+index d0546cd..3b756a7 100644
+--- a/src/capy_application_acceptor/candidate.py
++++ b/src/capy_application_acceptor/candidate.py
+@@ -19,6 +19,7 @@ from .constants import (
+     EXPECTED_STAGE_ORDER,
+     EXECUTION_CONTRACT,
+     INTERACTION_CONTRACT,
++    MANIFEST_MAX_BYTES,
+     NULL_EXIT_STAGES,
+     OUTER_CANDIDATE_MEMBERS,
+     OUTER_MAX_BYTES,
+@@ -69,19 +70,51 @@ def _read(payload: bytes) -> Candidate:
+ 
+     # Fast path for historical v0: peek loosely before canonical checks.
+     # If manifest schema is v0, report version error (spec requires this
+-    # even for the four-member public vector).
++    # even for the four-member public vector). ZipInfo metadata is checked
++    # before decompression so a DEFLATED bomb is not expanded here; the
++    # canonical check below rejects it without a large allocation.
+     try:
+         with zipfile.ZipFile(io.BytesIO(payload)) as _z:
+             if "RELEASE-CANDIDATE.json" in _z.namelist():
+                 try:
++                    _peek_info = _z.getinfo("RELEASE-CANDIDATE.json")
++                except KeyError:
++                    _peek_info = None
++                # Only peek STORED members; DEFLATED/unsupported members are
++                # left for the canonical discipline to reject without reading.
++                if _peek_info is not None and _peek_info.compress_type == zipfile.ZIP_STORED:
+                     _raw = _z.read("RELEASE-CANDIDATE.json")
+                     _val = json.loads(_raw.decode("utf-8"))
+                     if isinstance(_val, dict) and _val.get("schema") == CANDIDATE_SCHEMA_V0:
+                         raise AcceptorError("RELEASE_CANDIDATE_VERSION_UNSUPPORTED", "version")
+-                except AcceptorError:
+-                    raise
+-                except Exception:
+-                    pass
++    except AcceptorError:
++        raise
++    except Exception:
++        pass
++
++    # Metadata boundedness before outer decompression: reject oversized
++    # STORED declarations without allocating them.
++    try:
++        from .constants import INTERACTION_MAX_BYTES as _IMAX
++        from .constants import RECEIPT_MAX_BYTES as _RMAX
++
++        with zipfile.ZipFile(io.BytesIO(payload)) as _pre:
++            _bounds = {
++                "RELEASE-CANDIDATE.json": MANIFEST_MAX_BYTES,
++                "application/interaction.json": _IMAX,
++                "evidence/verification.json": _RMAX,
++                "application/application.zip": APP_ZIP_MAX_BYTES,
++                "toolchain/authoring-bundle.zip": BUNDLE_MAX_BYTES,
++            }
++            for _name, _bound in _bounds.items():
++                try:
++                    _pi = _pre.getinfo(_name)
++                except KeyError:
++                    continue
++                if _pi.compress_type != zipfile.ZIP_STORED:
++                    continue
++                if _pi.file_size > _bound:
++                    raise _integrity()
+     except AcceptorError:
+         raise
+     except Exception:
+@@ -507,8 +540,11 @@ def _validate_receipt(receipt, manifest, app_zip_bytes: bytes, outer_canonical:
+         if receipt["verified_at"] != manifest["verified_at"]:
+             raise ValueError("verified_at-match")
+         V.check_verified_at(receipt["verified_at"])
+-        # application_archive matches.
++        # application_archive matches. Precise integer types: booleans
++        # are not integers; float/int equality must not pass.
+         V.require_closed(receipt["application_archive"], {"sha256", "size_bytes"}, "receipt.archive")
++        if type(receipt["application_archive"]["size_bytes"]) is not int:
++            raise ValueError("receipt.archive-size-type")
+         if (receipt["application_archive"]["sha256"] != manifest["application"]["archive"]["sha256"]
+                 or receipt["application_archive"]["size_bytes"] != manifest["application"]["archive"]["size_bytes"]):
+             raise ValueError("receipt.archive-match")
+@@ -521,6 +557,8 @@ def _validate_receipt(receipt, manifest, app_zip_bytes: bytes, outer_canonical:
+         )
+         mi = manifest["application"]["interaction"]
+         ri = receipt["interaction_contract"]
++        if type(ri["canonical_size_bytes"]) is not int:
++            raise ValueError("receipt.canonical-size-type")
+         if (ri["canonical_sha256"] != mi["sha256"] or ri["canonical_size_bytes"] != mi["size_bytes"]
+                 or ri["operation_id"] != mi["operation_id"] or ri["schema"] != mi["schema"]
+                 or ri["source_member"] != mi["source_member"] or ri["source_sha256"] != mi["source_sha256"]):
+@@ -620,6 +658,11 @@ def _validate_stage(stage, app_zip_bytes: bytes, outer_canonical: bytes, inner_r
+     elif name == "package_compare":
+         if set(facts) != {"sha256_a", "sha256_b", "size_a", "size_b"}:
+             raise _integrity()
++        # Strict integer types before equality: booleans are not integers
++        # and 1.0 must not equal 1.
++        for k in ("size_a", "size_b"):
++            if type(facts[k]) is not int or facts[k] < 0:
++                raise _integrity()
+         if (facts["sha256_a"] != app_sha or facts["sha256_b"] != app_sha
+                 or facts["size_a"] != app_size or facts["size_b"] != app_size):
+             raise _integrity()
+@@ -628,18 +671,19 @@ def _validate_stage(stage, app_zip_bytes: bytes, outer_canonical: bytes, inner_r
+                 V.check_hex64(facts[k], k)
+             except ValueError:
+                 raise _integrity()
+-        for k in ("size_a", "size_b"):
+-            if type(facts[k]) is not int or facts[k] < 0:
+-                raise _integrity()
+     elif name == "archive_preserve":
+         if set(facts) != {"sha256", "size_bytes"}:
+             raise _integrity()
++        if type(facts["size_bytes"]) is not int or facts["size_bytes"] < 0:
++            raise _integrity()
+         if facts["sha256"] != app_sha or facts["size_bytes"] != app_size:
+             raise _integrity()
+     elif name == "interaction_preserve":
+         if set(facts) != {"candidate_unchanged", "canonical_sha256", "canonical_size_bytes",
+                            "source_sha256", "timed_out"}:
+             raise _integrity()
++        if type(facts["canonical_size_bytes"]) is not int or facts["canonical_size_bytes"] < 0:
++            raise _integrity()
+         if (facts["candidate_unchanged"] is not True or facts["timed_out"] is not False
+                 or facts["canonical_sha256"] != outer_sha
+                 or facts["canonical_size_bytes"] != len(outer_canonical)
+@@ -650,8 +694,28 @@ def _validate_stage(stage, app_zip_bytes: bytes, outer_canonical: bytes, inner_r
+ 
+ 
+ def _validate_toolchain(bundle_bytes: bytes, manifest) -> bytes:
+-    # Actual bundle hash already checked vs declared (toolchain integrity).
+-    # Now inspect bundle contents.
++    # Fixed trusted bundle validation before any inner decompression.
++    # Retains causal classifications: corrupt bytes already raised integrity
++    # in _check_member_binding; self-consistent but unapproved is untrusted.
++    try:
++        _mt = manifest["toolchain"]
++        if (
++            _mt["release_binding_commit"] != TRUSTED_RELEASE_BINDING_COMMIT
++            or _mt["wheel_sha256"] != TRUSTED_WHEEL_SHA256
++            or _mt["authoring_bundle"]["sha256"] != TRUSTED_BUNDLE_SHA256
++            or _mt["implementation_commit"] != TRUSTED_IMPLEMENTATION_COMMIT
++            or _mt["wheel_filename"] != TRUSTED_WHEEL_FILENAME
++            or _mt["interaction_contract"] != INTERACTION_CONTRACT
++        ):
++            raise _untrusted()
++        if hashlib.sha256(bundle_bytes).hexdigest() != TRUSTED_BUNDLE_SHA256:
++            raise _toolchain_integrity()
++    except AcceptorError:
++        raise
++    except Exception:
++        raise _toolchain_integrity()
++    # Now inspect bundle contents, enforcing expanded-size bounds from
++    # ZipInfo metadata before any inner decompression/allocation.
+     try:
+         with zipfile.ZipFile(io.BytesIO(bundle_bytes)) as z:
+             names = z.namelist()
+@@ -664,9 +728,33 @@ def _validate_toolchain(bundle_bytes: bytes, manifest) -> bytes:
+                     wheel_name = n
+             if wheel_name is None:
+                 raise _toolchain_integrity()
++            # Trusted filename check before reads (no decompression needed).
++            if wheel_name != f"wheel/{TRUSTED_WHEEL_FILENAME}":
++                if _mt["wheel_filename"] not in wheel_name:
++                    raise _toolchain_integrity()
++                raise _untrusted()
++            try:
++                _mi = z.getinfo("RELEASE-MANIFEST.json")
++                _wi = z.getinfo(wheel_name)
++            except KeyError:
++                raise _toolchain_integrity()
++            if _mi.file_size > MANIFEST_MAX_BYTES or _mi.file_size == 0:
++                raise _toolchain_integrity()
++            if _mi.compress_size > BUNDLE_MAX_BYTES:
++                raise _toolchain_integrity()
++            if _wi.file_size > BUNDLE_MAX_BYTES or _wi.file_size == 0:
++                raise _toolchain_integrity()
++            if _wi.compress_size > BUNDLE_MAX_BYTES:
++                raise _toolchain_integrity()
+             try:
+                 manifest_raw = z.read("RELEASE-MANIFEST.json")
++                if len(manifest_raw) > MANIFEST_MAX_BYTES:
++                    raise _toolchain_integrity()
+                 wheel_bytes = z.read(wheel_name)
++                if len(wheel_bytes) > BUNDLE_MAX_BYTES:
++                    raise _toolchain_integrity()
++            except AcceptorError:
++                raise
+             except KeyError:
+                 raise _toolchain_integrity()
+     except AcceptorError:
+diff --git a/src/capy_application_acceptor/comparison.py b/src/capy_application_acceptor/comparison.py
+index e12402b..3c3c037 100644
+--- a/src/capy_application_acceptor/comparison.py
++++ b/src/capy_application_acceptor/comparison.py
+@@ -59,12 +59,14 @@ def parse_success_envelope(stdout: bytes) -> tuple[dict | None, str | None]:
+     if not line:
+         return None, "empty-line"
+     try:
+-        text = line.decode("utf-8")
++        line.decode("utf-8")
+     except UnicodeDecodeError:
+         return None, "unicode"
++    # Strict JSON: reject duplicate keys, nonfinite values, bad Unicode,
++    # excessive depth and other malformed JSON before semantic comparison.
+     try:
+-        envelope = json.loads(text)
+-    except (json.JSONDecodeError, ValueError):
++        envelope = codec.parse_strict_json(line)
++    except ValueError:
+         return None, "json"
+     if not isinstance(envelope, dict) or "artifacts" not in envelope:
+         return None, "envelope"
+@@ -123,6 +125,7 @@ def classify_case(
+     observed_result,
+     observed_failure_code: str | None,
+     observed_status: str,
++    artifact_anomaly: str | None = None,
+ ) -> str:
+     """Return classification in causal precedence."""
+     if secret_hit:
+@@ -137,6 +140,11 @@ def classify_case(
+         return "REJECTED_APPLICATION_EXIT"
+     if observed_status == "error":
+         return "REJECTED_APPLICATION_EXIT"
++    # Every extra/undeclared output, dotfile, unsafe name, directory, or
++    # symlink must be rejected for successful and failed cases, without
++    # exposing unsafe names in portable evidence (already filtered).
++    if artifact_anomaly is not None:
++        return "REJECTED_ARTIFACT_SET_MISMATCH"
+     # Now observed is ok or failed with valid envelope.
+     if expect["status"] == "ok" and observed_status == "failed":
+         return "REJECTED_RESULT_MISMATCH"
+diff --git a/src/capy_application_acceptor/execution.py b/src/capy_application_acceptor/execution.py
+index 9bd05b8..72e396d 100644
+--- a/src/capy_application_acceptor/execution.py
++++ b/src/capy_application_acceptor/execution.py
+@@ -101,20 +101,36 @@ def pip_install_wheel(*, venv_python: Path, wheel_path: Path, setup_env: dict):
+         raise _env_unavailable()
+ 
+ 
+-def collect_artifacts(output_dir: Path):
+-    """Collect output files safely. Returns (artifacts list, anomaly flag)."""
++def collect_artifacts(output_dir: Path, max_total_bytes: int | None = None):
++    """Collect output files safely. Returns (artifacts list, anomaly flag).
++
++    Every extra/undeclared output, dotfile, unsafe name, directory, or
++    symlink is reported via a non-None anomaly so callers reject. Unsafe
++    names are never returned in the artifact list (not projected). Reads
++    are incremental and bounded by the aggregate limit (+1 to detect
++    overflow) without ever retaining unbounded files.
++    """
++    from .constants import LIMIT_CEILINGS
++
+     artifacts: list[tuple[str, bytes]] = []
+     anomaly = None
+     try:
+         entries = list(output_dir.iterdir())
+     except OSError:
+         return [], "missing-output"
+-    for entry in entries:
+-        # Ignore dotfiles like DevKit runner? DevKit ignores dotfiles starting with ".".
+-        # We follow same: ignore dotfiles for artifact set (they are not declared).
+-        # But if dotfile is symlink etc, ignore? Keep simple: ignore dotfiles.
++    budget = (max_total_bytes if max_total_bytes is not None else LIMIT_CEILINGS["max_total_artifact_bytes"]) + 1
++    if budget < 0:
++        budget = 0
++    total = 0
++    for entry in sorted(entries, key=lambda e: e.name):
++        # Dotfiles are extra/undeclared outputs and must be rejected;
++        # they are never projected.
+         if entry.name.startswith("."):
+-            # If it's a symlink or unexpected, still ignore (not projected).
++            try:
++                # Record anomaly even if it is a symlink/dir; do not expose.
++                anomaly = "dotfile"
++            except OSError:
++                anomaly = "dotfile"
+             continue
+         try:
+             if entry.is_symlink():
+@@ -123,13 +139,37 @@ def collect_artifacts(output_dir: Path):
+             if not entry.is_file():
+                 anomaly = "non-file"
+                 continue
+-            # Unsafe names are not projected (spec).
++            # Unsafe names are not projected (spec) but must be rejected.
+             if not codec.is_safe_basename(entry.name):
+                 anomaly = "unsafe-name"
+                 continue
+             # Path escaping already prevented (we only list direct children).
+-            # Reject subdirectories (non-file already).
+-            data = entry.read_bytes()
++            # Incremental bounded read enforcing the aggregate budget.
++            if total >= budget:
++                # Budget already exhausted: further safe files are beyond the
++                # retained prefix and only extend the overflow. Skip retention
++                # while still reporting anomalies for non-safe names above.
++                continue
++            chunks: list[bytes] = []
++            try:
++                with open(entry, "rb") as f:
++                    while True:
++                        remaining = budget - total
++                        if remaining <= 0:
++                            break
++                        part = f.read(min(65536, remaining))
++                        if not part:
++                            break
++                        chunks.append(part)
++                        total += len(part)
++                        if total >= budget:
++                            # Budget exhausted (limit+1 retained); discard
++                            # the remainder without further allocation.
++                            break
++            except OSError:
++                anomaly = "read-error"
++                continue
++            data = b"".join(chunks)
+             artifacts.append((entry.name, data))
+         except OSError:
+             anomaly = "read-error"
+@@ -253,17 +293,20 @@ def run_one_case(
+     # If output limited, we killed; keep bounded prefix for scanning (bounded).
+     # Collect artifacts (before cleanup) even on failure? Spec says every declared
+     # artifact collected before cleanup; for failures, no artifacts expected.
+-    artifacts, anomaly = collect_artifacts(output_dir)
++    # Bounded collection enforces the aggregate limit during reads (+1 to
++    # detect overflow) with causal evidence via total_bytes.
++    artifacts, anomaly = collect_artifacts(output_dir, max_total_artifacts)
+     # Check total artifact bytes vs max_total.
+     total_bytes = sum(len(b) for _, b in artifacts)
+     if total_bytes > max_total_artifacts:
+         output_limited = True
+     # Secret scan of bounded outputs/artifacts (defense in depth).
++    # Scan all permitted artifact bytes (retained prefix is already bounded
++    # to limit+1 total, up to 8 MiB).
+     secret_hit = False
+     scan_blobs: list[bytes] = [stdout[: max_stdout + 1], stderr[: max_stderr + 1]]
+     for _, data in artifacts:
+-        # Bound artifact scan to first 1MiB per file? Scan all (artifacts bounded by 8MiB total).
+-        scan_blobs.append(data[: 1024 * 1024 + 1] if len(data) > 1024 * 1024 + 1 else data)
++        scan_blobs.append(data)
+     from .scan import scan_many
+ 
+     if scan_many(scan_blobs):
+@@ -284,10 +327,11 @@ def run_one_case(
+                 # parsed is result without artifacts; declared is list from envelope.
+                 # Need to re-parse to get declared: parse_success_envelope already popped?
+                 # Actually it returns result without artifacts; we lost declared.
+-                # Re-extract declared from stdout.
++                # Re-extract declared from stdout strictly (duplicates/
++                # nonfinite already rejected by parse_success_envelope).
+                 try:
+-                    env_full = json.loads(stdout[:-1].decode("utf-8"))
+-                    declared_list = env_full.get("artifacts", [])
++                    env_full = codec.parse_strict_json(stdout[:-1])
++                    declared_list = env_full.get("artifacts", []) if isinstance(env_full, dict) else None
+                 except Exception:
+                     declared_list = None
+                     envelope_error = "envelope"
+diff --git a/src/capy_application_acceptor/process.py b/src/capy_application_acceptor/process.py
+index 49ca7f3..cdef6a2 100644
+--- a/src/capy_application_acceptor/process.py
++++ b/src/capy_application_acceptor/process.py
+@@ -32,11 +32,36 @@ def _kill_tree(proc: subprocess.Popen):
+                 except OSError:
+                     pass
+         else:
+-            proc.kill()
++            # Windows: terminate the whole tree, not only the immediate child.
++            try:
++                subprocess.run(
++                    ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
++                    stdout=subprocess.DEVNULL,
++                    stderr=subprocess.DEVNULL,
++                    timeout=5,
++                )
++            except Exception:
++                pass
++            try:
++                proc.kill()
++            except OSError:
++                pass
+     except OSError:
+         pass
+ 
+ 
++def _kill_pgid(pgid: int | None, proc: subprocess.Popen):
++    # Prefer stored pgid so descendants are reaped even after the immediate
++    # parent has exited (getpgid(parent) would then fail).
++    if pgid is not None and os.name == "posix":
++        try:
++            os.killpg(pgid, signal.SIGKILL)
++            return
++        except (ProcessLookupError, PermissionError, OSError):
++            pass
++    _kill_tree(proc)
++
++
+ def run_bounded(
+     argv: list[str],
+     *,
+@@ -54,6 +79,10 @@ def run_bounded(
+     """
+     start = time.monotonic()
+     # start_new_session detaches process group for portable tree kill on posix.
++    # On Windows create an isolated process group so taskkill /T can reap it.
++    _creationflags = 0
++    if os.name == "nt":
++        _creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+     try:
+         proc = subprocess.Popen(
+             argv,
+@@ -63,9 +92,18 @@ def run_bounded(
+             env=env,
+             cwd=str(cwd),
+             start_new_session=(os.name == "posix"),
++            creationflags=_creationflags,
+         )
+     except OSError as e:
+         raise e
++    # Capture process-group id immediately; after the parent exits getpgid(pid)
++    # fails, but the stored pgid still identifies descendants sharing the group.
++    stored_pgid: int | None = None
++    if os.name == "posix":
++        try:
++            stored_pgid = os.getpgid(proc.pid)
++        except OSError:
++            stored_pgid = None
+     stdout_chunks: list[bytes] = []
+     stderr_chunks: list[bytes] = []
+     stdout_len = 0
+@@ -80,7 +118,7 @@ def run_bounded(
+         nonlocal stdin_error
+         try:
+             if input_bytes is not None and proc.stdin is not None:
+-                # Write in chunks; stdin sizes are bounded (request ≤64KiB).
++                # Write in chunks; stdin sizes are bounded (request <=64KiB).
+                 proc.stdin.write(input_bytes)
+                 proc.stdin.close()
+             elif proc.stdin is not None:
+@@ -96,12 +134,29 @@ def run_bounded(
+     feeder = threading.Thread(target=_feed, daemon=True)
+     feeder.start()
+ 
++    def _read_once(stream, n: int) -> bytes:
++        # Incremental prompt read: read1/os.read return available bytes
++        # without waiting for the full request, unlike BufferedReader.read.
++        read1 = getattr(stream, "read1", None)
++        if callable(read1):
++            try:
++                return read1(n)
++            except (OSError, ValueError):
++                raise
++        try:
++            return os.read(stream.fileno(), n)
++        except (OSError, ValueError):
++            raise
++
+     # Reader threads for stdout/stderr with bounds.
+     def _read_stream(stream, chunks: list, kind: str):
+         nonlocal stdout_len, stderr_len, stdout_over, stderr_over
+         try:
+             while True:
+-                part = stream.read(65536)
++                try:
++                    part = _read_once(stream, 65536)
++                except (OSError, ValueError):
++                    break
+                 if not part:
+                     break
+                 if kind == "out":
+@@ -139,23 +194,33 @@ def run_bounded(
+ 
+     deadline = start + timeout_seconds
+     exit_code = None
+-    # Poll loop: enforce timeout and output limits.
++    # Poll loop: enforce timeout and output limits, including descendants
++    # holding inherited pipes after the immediate parent exits.
++    overflow_kill = False
+     while True:
+         now = time.monotonic()
+         remaining = deadline - now
+-        rc = proc.poll()
+-        # If output overflow detected, kill promptly.
++        # Prompt output-overflow precedence: kill as soon as any increment
++        # exceeds its limit, before the wall-time deadline is consulted.
+         if stdout_over or stderr_over:
+-            _kill_tree(proc)
+-            # Drain: wait briefly for readers to finish (they already broke).
++            _kill_pgid(stored_pgid, proc)
++            overflow_kill = True
+             break
+-        if rc is not None:
++        rc = proc.poll()
++        readers_done = (not t_out.is_alive()) and (not t_err.is_alive())
++        if rc is not None and readers_done:
+             exit_code = rc
+             break
+         if remaining <= 0:
+             timed_out = True
+-            _kill_tree(proc)
++            _kill_pgid(stored_pgid, proc)
+             break
++        if rc is not None and not readers_done:
++            # Immediate parent exited but pipes remain open: a descendant
++            # holds inherited write ends. Keep waiting only until the
++            # deadline, then terminate the whole tree above.
++            time.sleep(min(0.02, max(remaining, 0.001)))
++            continue
+         # Sleep briefly (bounded).
+         time.sleep(min(0.02, max(remaining, 0.001)))
+     # Ensure process reaped.
+@@ -167,7 +232,7 @@ def run_bounded(
+         elif exit_code is None:
+             exit_code = proc.returncode
+     except subprocess.TimeoutExpired:
+-        _kill_tree(proc)
++        _kill_pgid(stored_pgid, proc)
+         try:
+             proc.wait(timeout=5)
+         except subprocess.TimeoutExpired:
+@@ -177,9 +242,21 @@ def run_bounded(
+         else:
+             exit_code = proc.returncode if proc.returncode is not None else None
+     # If we killed for overflow, mark timed_out False; exit_code is whatever reaped.
+-    # Join readers (bounded).
++    # Join readers (bounded). After a tree kill the write ends close and the
++    # incremental readers observe EOF promptly.
+     t_out.join(timeout=5)
+     t_err.join(timeout=5)
++    if t_out.is_alive() or t_err.is_alive():
++        # Force unblock: close parent read ends, then re-join briefly so wall
++        # time stays bounded even if a descendant survived the tree kill.
++        for stream in (proc.stdout, proc.stderr):
++            try:
++                if stream is not None:
++                    stream.close()
++            except OSError:
++                pass
++        t_out.join(timeout=2)
++        t_err.join(timeout=2)
+     feeder.join(timeout=5)
+     # Close pipes defensively.
+     for stream in (proc.stdout, proc.stderr):
+@@ -205,6 +282,8 @@ def run_bounded(
+     duration_ms = int((time.monotonic() - start) * 1000)
+     if timed_out:
+         exit_code = None
++    elif overflow_kill:
++        timed_out = False
+     return BoundedResult(
+         exit_code=exit_code,
+         stdout=stdout_data,
+diff --git a/src/capy_application_acceptor/profile.py b/src/capy_application_acceptor/profile.py
+index 2ef457d..d4817da 100644
+--- a/src/capy_application_acceptor/profile.py
++++ b/src/capy_application_acceptor/profile.py
+@@ -52,15 +52,30 @@ def _read(payload: bytes) -> Profile:
+         # Entire profile bounded by 32 MiB -> integrity or invalid?
+         # Treat as invalid (exceeds bound) per spec "invalid before execution".
+         raise _invalid("size")
+-    # Loose unpack to find document and expected members.
++    # Loose unpack to find document and expected members. Metadata
++    # boundedness is enforced before any decompression/allocation.
+     try:
+         with zipfile.ZipFile(io.BytesIO(payload)) as z:
+             if z.comment != b"":
+                 raise _integrity()
++            try:
++                _info = z.getinfo("ACCEPTANCE-PROFILE.json")
++            except KeyError:
++                raise _integrity()
++            # Profile document is small in practice (~2 KiB); reject obvious
++            # bombs from metadata without decompressing.
++            if _info.compress_type != zipfile.ZIP_STORED:
++                raise _integrity()
++            if _info.file_size == 0 or _info.file_size > 1024 * 1024:
++                raise _integrity()
++            if _info.compress_size > PROFILE_MAX_BYTES:
++                raise _integrity()
+             loose_names = z.namelist()
+             if "ACCEPTANCE-PROFILE.json" not in loose_names:
+                 raise _integrity()
+             doc_raw_loose = z.read("ACCEPTANCE-PROFILE.json")
++            if len(doc_raw_loose) > 1024 * 1024:
++                raise _integrity()
+     except AcceptorError:
+         raise
+     except Exception:
+@@ -77,6 +92,42 @@ def _read(payload: bytes) -> Profile:
+     # Member count bound.
+     if len(expected_order) > PROFILE_MAX_MEMBERS:
+         raise _invalid("members")
++    # Metadata aggregate boundedness before decompression: reject oversized
++    # fixture/expected declarations without allocating them.
++    try:
++        with zipfile.ZipFile(io.BytesIO(payload)) as _pre:
++            _total_fixture = 0
++            _total_expected = 0
++            _limits = doc["limits"]
++            for _case in doc["cases"]:
++                for _r in _case["resources"]:
++                    try:
++                        _pi = _pre.getinfo(_r["member"])
++                    except KeyError:
++                        continue
++                    if _pi.compress_type != zipfile.ZIP_STORED:
++                        continue
++                    _total_fixture += _pi.file_size
++                    if _total_fixture > _limits["max_fixture_bytes"]:
++                        raise _invalid("max_fixture_bytes")
++                    if _total_fixture > LIMIT_CEILINGS["max_fixture_bytes"]:
++                        raise _invalid("fixture-hard")
++                for _a in _case["expect"]["artifacts"]:
++                    try:
++                        _pi = _pre.getinfo(_a["member"])
++                    except KeyError:
++                        continue
++                    if _pi.compress_type != zipfile.ZIP_STORED:
++                        continue
++                    _total_expected += _pi.file_size
++                    if _total_expected > _limits["max_expected_artifact_bytes"]:
++                        raise _invalid("max_expected_artifact_bytes")
++                    if _total_expected > LIMIT_CEILINGS["max_expected_artifact_bytes"]:
++                        raise _invalid("expected-hard")
++    except AcceptorError:
++        raise
++    except Exception:
++        pass
+     # Canonical ZIP check with expected order.
+     try:
+         members = codec.check_zip_canonical_members(payload, expected_order)
+@@ -118,15 +169,17 @@ def _expected_members(doc) -> list[str]:
+ 
+ 
+ def _validate_document(doc):
+-    # Top-level exact keys: unknown -> integrity (malformed).
++    # Top-level exact keys: unknown field is schema-invalid (INVALID);
++    # missing/malformed shape remains integrity failure.
++    _TOP = {
++        "schema", "profile_id", "application_id", "candidate_requirements",
++        "interaction_expectations", "cases", "limits", "non_goals",
++    }
+     try:
+-        V.require_closed(
+-            doc,
+-            {"schema", "profile_id", "application_id", "candidate_requirements",
+-             "interaction_expectations", "cases", "limits", "non_goals"},
+-            "profile",
+-        )
++        V.require_closed(doc, _TOP, "profile")
+     except ValueError:
++        if isinstance(doc, dict) and (set(doc.keys()) - _TOP):
++            raise _invalid("unknown-field")
+         raise _integrity()
+     if doc["schema"] != PROFILE_SCHEMA:
+         # Wrong schema: malformed? Treat as integrity (or invalid?).
+@@ -351,6 +404,9 @@ def _validate_limits(limits):
+         raise _integrity()
+     for key in LIMIT_KEYS:
+         v = limits[key]
++        # Booleans are not integers: schema-invalid limit value.
++        if type(v) is bool:
++            raise _invalid(key)
+         if type(v) is not int:
+             raise _integrity()
+         if v <= 0:
+@@ -376,10 +432,13 @@ def _validate_cases(doc):
+     all_resource_members: set[str] = set()
+     total_fixture = 0
+     total_expected = 0
++    _CASE_KEYS = {"case_id", "request", "resources", "expect"}
+     for case in cases:
+         try:
+-            V.require_closed(case, {"case_id", "request", "resources", "expect"}, "case")
++            V.require_closed(case, _CASE_KEYS, "case")
+         except ValueError:
++            if isinstance(case, dict) and (set(case.keys()) - _CASE_KEYS):
++                raise _invalid("unknown-field")
+             raise _integrity()
+         try:
+             V.check_case_id(case["case_id"])

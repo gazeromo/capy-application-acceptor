@@ -1,0 +1,13 @@
+ M src/capy_application_acceptor/acceptance.py
+ M src/capy_application_acceptor/candidate.py
+ M src/capy_application_acceptor/profile.py
+?? src/capy_application_acceptor/codec.py
+?? src/capy_application_acceptor/comparison.py
+?? src/capy_application_acceptor/constants.py
+?? src/capy_application_acceptor/execution.py
+?? src/capy_application_acceptor/interaction.py
+?? src/capy_application_acceptor/process.py
+?? src/capy_application_acceptor/projection.py
+?? src/capy_application_acceptor/scan.py
+?? src/capy_application_acceptor/validation.py
+?? tests/contributor/test_extra.py

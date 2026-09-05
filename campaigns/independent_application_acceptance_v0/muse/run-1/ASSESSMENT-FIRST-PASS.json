@@ -1,0 +1,39 @@
+{
+  "schema": "capy.muse-first-pass/v0",
+  "snapshot": {
+    "commit": "fec88e377a12039826a5afa3388b8bb3dd7d4b64",
+    "tree": "9c885360988665e47ad09884b0fa7e87eb6b31ed",
+    "parent": "41fb0e2b5c543f41f26b4b71001b8e53b27e23ce",
+    "attribution": "Exact Muse Spark 1.3 Contributor Run 1 output; Astra mechanical snapshot commit; no source edits before scoring"
+  },
+  "visible": {
+    "passed": 25,
+    "total": 25,
+    "seconds": 27.913
+  },
+  "hidden": {
+    "passed": 62,
+    "total": 65,
+    "failed_categories": [
+      "profile unknown top-level field",
+      "profile unknown case field",
+      "boolean integer limit"
+    ],
+    "observed_code": "ACCEPTANCE_PROFILE_INTEGRITY_FAILED",
+    "required_code": "ACCEPTANCE_PROFILE_INVALID"
+  },
+  "scope": {
+    "modified_or_added_paths": 13,
+    "violations": 0
+  },
+  "independent_source_review": {
+    "reviewer": "/root/muse_run1_source_review",
+    "P0": 0,
+    "P1": 5,
+    "P2": 2
+  },
+  "core_edits_by_astra_before_snapshot_and_score": 0,
+  "astra_run1_interventions": 0,
+  "final_contributor_classification": "PENDING_REPAIR_AND_RETAINED_DELTA",
+  "product_acceptance": "PENDING_INTEGRATION_AND_QUALIFICATION"
+}

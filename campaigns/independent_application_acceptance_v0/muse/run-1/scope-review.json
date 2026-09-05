@@ -1,0 +1,23 @@
+{
+  "base": "41fb0e2b5c543f41f26b4b71001b8e53b27e23ce",
+  "snapshot": "/Users/gazeromo/.local/share/capy-acceptor-campaign/01a07095/run-1-untouched",
+  "changed": [
+    "src/capy_application_acceptor/acceptance.py",
+    "src/capy_application_acceptor/candidate.py",
+    "src/capy_application_acceptor/profile.py"
+  ],
+  "added": [
+    "src/capy_application_acceptor/codec.py",
+    "src/capy_application_acceptor/comparison.py",
+    "src/capy_application_acceptor/constants.py",
+    "src/capy_application_acceptor/execution.py",
+    "src/capy_application_acceptor/interaction.py",
+    "src/capy_application_acceptor/process.py",
+    "src/capy_application_acceptor/projection.py",
+    "src/capy_application_acceptor/scan.py",
+    "src/capy_application_acceptor/validation.py",
+    "tests/contributor/test_extra.py"
+  ],
+  "scope_violations": [],
+  "hidden_hashes_unchanged": true
+}

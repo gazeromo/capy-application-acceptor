@@ -1,0 +1,12 @@
+{
+  "implementation_runs": 2,
+  "further_runs": 0,
+  "worker_removed": true,
+  "credential_sidecar_removed": true,
+  "synthetic_fixture_container_removed": true,
+  "task_workspace_git_volumes_removed": true,
+  "task_networks_removed": true,
+  "provider_credential_discarded": "sidecar process memory ended",
+  "unrelated_containers": "untouched",
+  "full_exports": "retained locally by hash; never published encrypted reasoning"
+}

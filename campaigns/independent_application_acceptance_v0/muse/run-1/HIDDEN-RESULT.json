@@ -1,0 +1,526 @@
+{
+  "passed": 62,
+  "total": 65,
+  "rows": [
+    {
+      "name": "csv_resource_valid",
+      "passed": true,
+      "expected_exit": 0,
+      "observed_exit": 0,
+      "expected_classification": "ACCEPTED",
+      "reason": []
+    },
+    {
+      "name": "csv_resource_wrong_value",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_RESULT_MISMATCH",
+      "reason": []
+    },
+    {
+      "name": "csv_resource_total_contract",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_INTERACTION_MISMATCH",
+      "reason": []
+    },
+    {
+      "name": "profile_fixture_replacement",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "profile_duplicate_slot",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INVALID",
+      "reason": []
+    },
+    {
+      "name": "profile_metadata_comment",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "profile_metadata_mode",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "profile_metadata_timestamp",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_duplicate_member",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "profile_duplicate_member",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "greeting_valid",
+      "passed": true,
+      "expected_exit": 0,
+      "observed_exit": 0,
+      "expected_classification": "ACCEPTED",
+      "reason": []
+    },
+    {
+      "name": "artifact_valid",
+      "passed": true,
+      "expected_exit": 0,
+      "observed_exit": 0,
+      "expected_classification": "ACCEPTED",
+      "reason": []
+    },
+    {
+      "name": "historical_v0",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_VERSION_UNSUPPORTED",
+      "reason": []
+    },
+    {
+      "name": "candidate_trailing",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_reordered",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_extra",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_absolute",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_traversal",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_backslash",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_member_0",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_member_1",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_member_2",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_member_3",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_member_4",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_comment",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_timestamp",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_compression",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_mode",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "candidate_system",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "verification_status",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "verification_classification",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "verification_stage",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "verification_stage_truth",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "verification_source",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "weakened_handoff",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "cross_application",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "RELEASE_CANDIDATE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "profile_unknown",
+      "passed": false,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INVALID",
+      "reason": []
+    },
+    {
+      "name": "profile_unknown_case",
+      "passed": false,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INVALID",
+      "reason": []
+    },
+    {
+      "name": "profile_boolean_limit",
+      "passed": false,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INVALID",
+      "reason": []
+    },
+    {
+      "name": "profile_limit",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INVALID",
+      "reason": []
+    },
+    {
+      "name": "profile_no_negative",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INVALID",
+      "reason": []
+    },
+    {
+      "name": "profile_no_positive",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INVALID",
+      "reason": []
+    },
+    {
+      "name": "profile_duplicate_case",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INVALID",
+      "reason": []
+    },
+    {
+      "name": "profile_state",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INVALID",
+      "reason": []
+    },
+    {
+      "name": "profile_connections",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INVALID",
+      "reason": []
+    },
+    {
+      "name": "profile_side_effect",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INVALID",
+      "reason": []
+    },
+    {
+      "name": "profile_toolchain",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "TOOLCHAIN_UNTRUSTED",
+      "reason": []
+    },
+    {
+      "name": "profile_bad_member",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INVALID",
+      "reason": []
+    },
+    {
+      "name": "profile_extra",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "profile_noncanonical",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "profile_artifact_digest",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "ACCEPTANCE_PROFILE_INTEGRITY_FAILED",
+      "reason": []
+    },
+    {
+      "name": "profile_pairing",
+      "passed": true,
+      "expected_exit": 2,
+      "observed_exit": 2,
+      "expected_classification": "APPLICATION_PROFILE_MISMATCH",
+      "reason": []
+    },
+    {
+      "name": "interaction_purpose",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_INTERACTION_MISMATCH",
+      "reason": []
+    },
+    {
+      "name": "semantic_wrong_field",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_RESULT_MISMATCH",
+      "reason": []
+    },
+    {
+      "name": "semantic_wrong_value",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_RESULT_MISMATCH",
+      "reason": []
+    },
+    {
+      "name": "semantic_extra_field",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_RESULT_MISMATCH",
+      "reason": []
+    },
+    {
+      "name": "semantic_failure_code",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_FAILURE_CODE_MISMATCH",
+      "reason": []
+    },
+    {
+      "name": "semantic_unexpected_success",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_RESULT_MISMATCH",
+      "reason": []
+    },
+    {
+      "name": "semantic_unexpected_failure",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_RESULT_MISMATCH",
+      "reason": []
+    },
+    {
+      "name": "semantic_timeout",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_CASE_TIMEOUT",
+      "reason": []
+    },
+    {
+      "name": "semantic_output_limit",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_OUTPUT_LIMIT",
+      "reason": []
+    },
+    {
+      "name": "semantic_secret",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_SECRET_BOUNDARY",
+      "reason": []
+    },
+    {
+      "name": "semantic_artifact_missing",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_ARTIFACT_SET_MISMATCH",
+      "reason": []
+    },
+    {
+      "name": "semantic_artifact_extra",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_ARTIFACT_SET_MISMATCH",
+      "reason": []
+    },
+    {
+      "name": "semantic_artifact_bytes",
+      "passed": true,
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "expected_classification": "REJECTED_ARTIFACT_BYTES_MISMATCH",
+      "reason": []
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "aggregate_sha256": "34f094d974ff4f377f6b60333aa4697420ebde8a66f0a27062f5dd6797888b58",
+  "files": {
+    "accepted-v0.capyrc": "fab0d9e9a244af2b21da15e9f09d91dd5195be05d907eeddd4e9feae3b94b983",
+    "artifact-v1.capyrc": "2f06269b3d9dd0c366f8b07b73ee932706d2b38762809b8ee0f55bab13d8416e",
+    "create_csv.py": "1cf3a856711056ccb85b96a559a6e25bc5f4eb8d89caa2b5ec2e5db06aa24c29",
+    "csv-correct.capyrc": "a5af42eb8a519a1bd99e1ea87406aeb089ab73de7c54c3de21334c7817aec2ba",
+    "csv-mean.capya": "9d4199c41d641c1dba2c07d31bd680986f7f41faea062cf214d7d759da56b893",
+    "csv-total.capyrc": "7e0b5465d026e64b80bf87555de234bcdcd1ac46afb05dd6b59c7881e549eb54",
+    "csv-wrong-value.capyrc": "95f4145b37ae17b0e966f0c43904fe329a6fd2520bf415528cee07dfe029bacd",
+    "fixed-v1.capyrc": "188c9498712d262b41b9305807437b51e6eb436b20f0d677e257989be9ce5a6f",
+    "greeting.capya": "06ee5eaecc2d253a651c26b585e96aee2431ee4fe7d36f25d276c489f8927425",
+    "manifest_shape.json": "3004583bf8504a98247a09fb67a6751b38c6d4889b0c915bffcaac302955db6a",
+    "non_claims.json": "40d579cbb3efa60a522e95e91aa96c5343d7f75c05a966d1def84828200e9c56",
+    "oracle.py": "b3d00445cc6da570c7bd55173bcc3ff3a96a447ae1f4050ca8ca24ae95a9fba7",
+    "qualify.py": "f8ec67f72494a58cf0958a3e6c1ef530b2b90e249fb0f67253c07a6800b3d2b4",
+    "release.json": "5b6fe57824b6da6f769713801141fc1b5e4bc0c2fd10a80d2f1f6b269f48aaf0",
+    "report.capya": "bae9c3a8484d89b95bf93b46c0c80af021f0d7ca33b4d52fd31d78d1662b3dc3",
+    "verification_shape.json": "e5c571573a1cfbf0445c3606d5934fecf8b84cbd8e3db244f98785c668b7ffe9"
+  }
+}

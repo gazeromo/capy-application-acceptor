@@ -1,0 +1,21 @@
+{
+  "prompt_sha256": "99b52d4980d3089b903183a006781849bd353080ee37a8fbd6de85861b804383",
+  "base": "fec88e377a12039826a5afa3388b8bb3dd7d4b64",
+  "hidden_unchanged": true,
+  "first_pass": {
+    "visible": {
+      "passed": 25,
+      "total": 25
+    },
+    "hidden": {
+      "passed": 62,
+      "total": 65
+    },
+    "review": {
+      "P0": 0,
+      "P1": 5,
+      "P2": 2
+    }
+  },
+  "repair_runs_allowed": 1
+}

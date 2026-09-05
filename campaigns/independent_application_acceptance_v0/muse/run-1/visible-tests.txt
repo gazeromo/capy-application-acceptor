@@ -1,0 +1,30 @@
+test_canonical_rejects_trailing_and_order (contributor.test_extra.CodecTests.test_canonical_rejects_trailing_and_order) ... ok
+test_duplicate_keys_rejected (contributor.test_extra.CodecTests.test_duplicate_keys_rejected) ... ok
+test_safe_basename (contributor.test_extra.CodecTests.test_safe_basename) ... ok
+test_failed_with_artifacts_is_set_mismatch (contributor.test_extra.ComparisonTests.test_failed_with_artifacts_is_set_mismatch) ... ok
+test_numeric_representations_distinct (contributor.test_extra.ComparisonTests.test_numeric_representations_distinct) ... ok
+test_precedence_secret_first (contributor.test_extra.ComparisonTests.test_precedence_secret_first) ... ok
+test_no_devkit_or_model_imports (contributor.test_extra.ImportHygieneTests.test_no_devkit_or_model_imports) ... ok
+test_application_mismatch (contributor.test_extra.ReleaseTests.test_application_mismatch) ... ok
+test_bad_release_rejected (contributor.test_extra.ReleaseTests.test_bad_release_rejected) ... ok
+test_interaction_mismatch_early_and_cleanup (contributor.test_extra.ReleaseTests.test_interaction_mismatch_early_and_cleanup) ... ok
+test_toolchain_untrusted_profile (contributor.test_extra.ReleaseTests.test_toolchain_untrusted_profile) ... ok
+test_canary_and_keys (contributor.test_extra.ScanTests.test_canary_and_keys) ... ok
+test_no_raw_leak_in_findings (contributor.test_extra.ScanTests.test_no_raw_leak_in_findings) ... ok
+test_accepted_public_v1 (test_core.CandidateTests.test_accepted_public_v1) ... ok
+test_outer_tamper (test_core.CandidateTests.test_outer_tamper) ... ok
+test_v0_has_causal_version_error (test_core.CandidateTests.test_v0_has_causal_version_error) ... ok
+test_artifact_bytes_collected_and_bound (test_core.ExecutionTests.test_artifact_bytes_collected_and_bound) ... ok
+test_independent_positive_and_negative (test_core.ExecutionTests.test_independent_positive_and_negative) ... ok
+test_interaction_expectation_rejected (test_core.ExecutionTests.test_interaction_expectation_rejected) ... ok
+test_portable_bytes_deterministic (test_core.ExecutionTests.test_portable_bytes_deterministic) ... ok
+test_wrong_failure_code_rejected (test_core.ExecutionTests.test_wrong_failure_code_rejected) ... ok
+test_wrong_result_rejected (test_core.ExecutionTests.test_wrong_result_rejected) ... ok
+test_closed_and_bounded_profile (test_core.ProfileTests.test_closed_and_bounded_profile) ... ok
+test_expected_artifact_integrity (test_core.ProfileTests.test_expected_artifact_integrity) ... ok
+test_valid_profile_and_digest (test_core.ProfileTests.test_valid_profile_and_digest) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 27.913s
+
+OK

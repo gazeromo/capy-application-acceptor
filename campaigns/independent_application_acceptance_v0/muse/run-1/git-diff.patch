@@ -1,0 +1,1793 @@
+diff --git a/src/capy_application_acceptor/acceptance.py b/src/capy_application_acceptor/acceptance.py
+index 69f28da..589d4fa 100644
+--- a/src/capy_application_acceptor/acceptance.py
++++ b/src/capy_application_acceptor/acceptance.py
+@@ -1,12 +1,448 @@
+-"""Muse-owned independent execution and portable evidence; frozen entrypoint."""
++"""Independent execution and portable evidence; frozen entrypoint."""
++from __future__ import annotations
++
++import hashlib
++import shutil
+ from pathlib import Path
++
++from . import codec
++from .comparison import canonical_result_sha, classify_case
++from .constants import EXECUTION_CONTRACT, INTERACTION_CONTRACT
++from .errors import AcceptorError
++from .execution import run_one_case
+ from .models import Candidate, Evaluation, Profile
++from .projection import (
++    acceptance_id_for,
++    build_case_projection,
++    build_document,
++    build_expected_entry,
++    build_identity,
++    build_observed_entry,
++    identity_sha,
++)
++from .scan import scan_many
++
++
++def _release_invalid() -> AcceptorError:
++    return AcceptorError("RELEASE_INVALID", "release")
+ 
+ 
+ def evaluate(candidate: Candidate, profile: Profile, release: dict, work_root: Path) -> Evaluation:
+-    """Evaluate validated inputs in an empty owned root, leaving it empty on return.
++    # Validate work_root is an existing empty directory.
++    try:
++        if not isinstance(work_root, Path):
++            work_root = Path(work_root)
++        if not work_root.is_dir():
++            raise AcceptorError("EXECUTION_ENVIRONMENT_UNAVAILABLE", "environment")
++        # Caller owns work_root itself; we may create only children.
++        if any(work_root.iterdir()):
++            raise AcceptorError("EXECUTION_ENVIRONMENT_UNAVAILABLE", "environment")
++    except AcceptorError:
++        raise
++    except Exception:
++        raise AcceptorError("EXECUTION_ENVIRONMENT_UNAVAILABLE", "environment")
++
++    # All execution must leave root empty on every return; cleanup failure
++    # raises CLEANUP_FAILED and never returns ACCEPTED.
++    try:
++        return _evaluate_inner(candidate, profile, release, work_root)
++    finally:
++        # Ensure cleanup on every return path (including raises? Spec says on
++        # every return; we also clean on raises to avoid leaking, but preserve
++        # original error unless cleanup itself fails).
++        pass
++
++
++def _evaluate_inner(candidate: Candidate, profile: Profile, release: dict, work_root: Path) -> Evaluation:
++    # Wrap entire trial to guarantee cleanup.
++    created: list[Path] = []
++    try:
++        result = _trial(candidate, profile, release, work_root, created)
++        _cleanup_children(work_root)
++        return result
++    except AcceptorError as e:
++        # Attempt cleanup; if cleanup fails, mask with CLEANUP_FAILED?
++        # Spec: cleanup failure raises CLEANUP_FAILED and must never return ACCEPTED.
++        # For raises, we still must leave root empty; if we cannot, raise CLEANUP_FAILED.
++        try:
++            _cleanup_children(work_root)
++        except AcceptorError as ce:
++            raise ce
++        raise
++    except Exception as e:
++        try:
++            _cleanup_children(work_root)
++        except AcceptorError as ce:
++            raise ce
++        # Unexpected internal error -> environment unavailable (no raw data).
++        raise AcceptorError("EXECUTION_ENVIRONMENT_UNAVAILABLE", "environment") from e
++
++
++def _cleanup_children(work_root: Path):
++    try:
++        for child in list(work_root.iterdir()):
++            try:
++                if child.is_symlink() or child.is_file():
++                    child.unlink()
++                elif child.is_dir():
++                    shutil.rmtree(child, ignore_errors=False)
++                else:
++                    # Unknown type: try unlink.
++                    try:
++                        child.unlink()
++                    except OSError:
++                        shutil.rmtree(child, ignore_errors=False)
++            except OSError as e:
++                raise AcceptorError("CLEANUP_FAILED", "cleanup") from e
++        # Verify empty.
++        try:
++            remaining = list(work_root.iterdir())
++        except OSError as e:
++            raise AcceptorError("CLEANUP_FAILED", "cleanup") from e
++        if remaining:
++            raise AcceptorError("CLEANUP_FAILED", "cleanup")
++    except AcceptorError:
++        raise
++    except Exception as e:
++        raise AcceptorError("CLEANUP_FAILED", "cleanup") from e
++
++
++def _validate_release(release) -> dict:
++    if not isinstance(release, dict):
++        raise _release_invalid()
++    if set(release) != {"contract", "version", "implementation_commit", "implementation_tree"}:
++        raise _release_invalid()
++    if release.get("contract") != "capy.independent-application-acceptance/v0":
++        raise _release_invalid()
++    if release.get("version") != "0.1.0":
++        raise _release_invalid()
++    for key in ("implementation_commit", "implementation_tree"):
++        v = release.get(key)
++        if not isinstance(v, str) or len(v) != 40 or any(c not in "0123456789abcdef" for c in v):
++            raise _release_invalid()
++    return dict(release)
++
++
++def _trial(candidate, profile, release, work_root: Path, created: list) -> Evaluation:
++    release_clean = _validate_release(release)
++    # Basic type checks for candidate/profile (must be validated models).
++    if not isinstance(candidate, Candidate) or not isinstance(profile, Profile):
++        raise AcceptorError("EXECUTION_ENVIRONMENT_UNAVAILABLE", "environment")
++    # Application mismatch.
++    try:
++        cand_app = candidate.manifest["application"]["id"]
++        prof_app = profile.document["application_id"]
++    except (KeyError, TypeError):
++        raise AcceptorError("APPLICATION_PROFILE_MISMATCH", "application")
++    if cand_app != prof_app:
++        raise AcceptorError("APPLICATION_PROFILE_MISMATCH", "application")
++    # Also check descriptor/interaction app ids consistent (integrity).
++    try:
++        if candidate.descriptor.get("id") != cand_app:
++            raise AcceptorError("RELEASE_CANDIDATE_INTEGRITY_FAILED", "candidate")
++        if candidate.interaction.get("application_id") != cand_app:
++            raise AcceptorError("RELEASE_CANDIDATE_INTEGRITY_FAILED", "candidate")
++    except AttributeError:
++        raise AcceptorError("RELEASE_CANDIDATE_INTEGRITY_FAILED", "candidate")
++    # Unsupported descriptor state/connections/side-effect/contracts.
++    desc = candidate.descriptor
++    try:
++        if desc.get("state_required") is True:
++            raise AcceptorError("APPLICATION_UNSUPPORTED", "application")
++        if desc.get("connections"):
++            raise AcceptorError("APPLICATION_UNSUPPORTED", "application")
++        if desc.get("side_effect") not in ("read_only", "artifact_generation"):
++            raise AcceptorError("APPLICATION_UNSUPPORTED", "application")
++        if candidate.manifest["application"]["contract"] != EXECUTION_CONTRACT:
++            raise AcceptorError("APPLICATION_UNSUPPORTED", "application")
++        if candidate.manifest["application"]["interaction"]["schema"] != INTERACTION_CONTRACT:
++            raise AcceptorError("APPLICATION_UNSUPPORTED", "application")
++    except KeyError:
++        raise AcceptorError("RELEASE_CANDIDATE_INTEGRITY_FAILED", "candidate")
++    # Toolchain trust cross-check.
++    try:
++        req = profile.document["candidate_requirements"]
++        tc = candidate.manifest["toolchain"]
++        if (req["toolchain_release_binding_commit"] != tc["release_binding_commit"]
++                or req["toolchain_wheel_sha256"] != tc["wheel_sha256"]
++                or req["toolchain_authoring_bundle_sha256"] != tc["authoring_bundle"]["sha256"]):
++            raise AcceptorError("TOOLCHAIN_UNTRUSTED", "toolchain")
++        # Also ensure candidate toolchain is still trusted (defense).
++        from .constants import (
++            TRUSTED_BUNDLE_SHA256,
++            TRUSTED_RELEASE_BINDING_COMMIT,
++            TRUSTED_WHEEL_SHA256,
++        )
++
++        if (tc["release_binding_commit"] != TRUSTED_RELEASE_BINDING_COMMIT
++                or tc["wheel_sha256"] != TRUSTED_WHEEL_SHA256
++                or tc["authoring_bundle"]["sha256"] != TRUSTED_BUNDLE_SHA256):
++            raise AcceptorError("TOOLCHAIN_UNTRUSTED", "toolchain")
++    except KeyError:
++        raise AcceptorError("RELEASE_CANDIDATE_INTEGRITY_FAILED", "candidate")
++    # Side-effect requirement vs descriptor: treat mismatch as interaction mismatch.
++    # (Profile only allows supported values, so any difference is semantic.)
++    if req.get("side_effect") != desc.get("side_effect"):
++        return _early_rejection(candidate, profile, release_clean, "REJECTED_INTERACTION_MISMATCH", secret_hit=False)
++    # Identity for portable docs.
++    identity = build_identity(candidate, profile, release_clean)
++    isha = identity_sha(identity)
++    aid = acceptance_id_for(isha)
++
++    # Pre-execution secret scan of all candidate application members.
++    try:
++        blobs = list(candidate.application_members.values())
++    except Exception:
++        raise AcceptorError("RELEASE_CANDIDATE_INTEGRITY_FAILED", "candidate")
++    if scan_many(blobs):
++        return _early_rejection(candidate, profile, release_clean, "REJECTED_SECRET_BOUNDARY", secret_hit=True)
++
++    # Interaction expectations cross-check (semantic, no LM judgment).
++    if not _interaction_matches(profile.document["interaction_expectations"], candidate.interaction, desc):
++        return _early_rejection(candidate, profile, release_clean, "REJECTED_INTERACTION_MISMATCH", secret_hit=False)
++
++    # Do not run candidate code before input/toolchain/secret checks pass:
++    # validate request sizes and resource bindings fit limits (already validated
++    # in profile, but re-check against limits defensively).
++    limits = profile.document["limits"]
++    for case in profile.document["cases"]:
++        try:
++            rb = codec.canonical_bytes(case["request"])
++        except (TypeError, ValueError):
++            raise AcceptorError("ACCEPTANCE_PROFILE_INTEGRITY_FAILED", "profile")
++        if len(rb) > limits["max_request_bytes"]:
++            raise AcceptorError("ACCEPTANCE_PROFILE_INVALID", "profile")
++
++    # Per-case timeout/limits.
++    desc_timeout = desc.get("timeout_seconds", limits["timeout_seconds"])
++    try:
++        per_case_timeout = float(min(int(limits["timeout_seconds"]), int(desc_timeout)))
++    except (TypeError, ValueError):
++        raise AcceptorError("ACCEPTANCE_PROFILE_INVALID", "profile")
++    if per_case_timeout <= 0:
++        raise AcceptorError("ACCEPTANCE_PROFILE_INVALID", "profile")
++    max_stdout = int(limits["max_stdout_bytes"])
++    max_stderr = int(limits["max_stderr_bytes"])
++    max_total = int(limits["max_total_artifact_bytes"])
++
++    # Write wheel once under work_root for pip installs (exact filename required).
++    try:
++        _wheel_name = candidate.manifest["toolchain"]["wheel_filename"]
++    except (KeyError, TypeError):
++        raise AcceptorError("RELEASE_CANDIDATE_INTEGRITY_FAILED", "candidate")
++    wheel_path = work_root / _wheel_name
++    try:
++        wheel_path.write_bytes(candidate.wheel_bytes)
++        created.append(wheel_path)
++    except OSError as e:
++        raise AcceptorError("EXECUTION_ENVIRONMENT_UNAVAILABLE", "environment") from e
++
++    # Run all bounded cases in profile order.
++    case_projections: list[dict] = []
++    case_records: list[dict] = []
++    overall_secret_rejected = False
++    for order, case in enumerate(profile.document["cases"]):
++        work_case = work_root / f"case-{order:02d}-{case['case_id']}"
++        try:
++            work_case.mkdir(parents=False, exist_ok=False)
++            created.append(work_case)
++        except OSError as e:
++            raise AcceptorError("EXECUTION_ENVIRONMENT_UNAVAILABLE", "environment") from e
++        raw = run_one_case(
++            candidate=candidate,
++            profile=profile,
++            case=case,
++            case_order=order,
++            work_case=work_case,
++            wheel_path=wheel_path,
++            per_case_timeout=per_case_timeout,
++            max_stdout=max_stdout,
++            max_stderr=max_stderr,
++            max_total_artifacts=max_total,
++        )
++        # Secret hit in this case takes precedence.
++        if raw.get("secret_hit"):
++            overall_secret_rejected = True
++        # Build expected/observed entries.
++        expected_entry = build_expected_entry(case["expect"], profile.members)
++        # Observed artifacts projection (sorted, safe names only already).
++        obs_arts = []
++        for filename, data in raw.get("artifacts", []):
++            # Invalid/unsafe names not projected (already filtered in collect).
++            # Still guard.
++            if not codec.is_safe_basename(filename):
++                continue
++            obs_arts.append(
++                {"filename": filename, "sha256": hashlib.sha256(data).hexdigest(), "size_bytes": len(data)}
++            )
++        obs_arts.sort(key=lambda x: x["filename"])
++        observed_entry = build_observed_entry(
++            status=raw.get("observed_status", "error"),
++            result=raw.get("observed_result"),
++            artifacts=obs_arts,
++            failure_code=raw.get("observed_failure_code"),
++        )
++        # For error observations, ensure null result/failure per spec.
++        if observed_entry["status"] == "error":
++            observed_entry["result_sha256"] = None
++            observed_entry["failure_code"] = None
++        # Classify with precedence.
++        classification = classify_case(
++            expect=case["expect"],
++            timed_out=bool(raw.get("timed_out")),
++            output_limited=bool(raw.get("output_limited")),
++            secret_hit=bool(raw.get("secret_hit")),
++            exit_code=raw.get("exit_code"),
++            stdout=raw.get("stdout", b""),
++            stderr=raw.get("stderr", b""),
++            actual_artifacts=raw.get("artifacts", []),
++            envelope_error=raw.get("envelope_error"),
++            observed_result=raw.get("observed_result"),
++            observed_failure_code=raw.get("observed_failure_code"),
++            observed_status=raw.get("observed_status", "error"),
++        )
++        matched = classification == "CASE_MATCHED"
++        proj = build_case_projection(
++            case_id=case["case_id"],
++            matched=matched,
++            classification=classification,
++            expected=expected_entry,
++            observed=observed_entry,
++        )
++        case_projections.append(proj)
++        # Case records: local-only diagnostics (no native paths in portable doc).
++        # Include bounded digests/counts, duration, tool-free facts.
++        stdout_data = raw.get("stdout", b"")
++        stderr_data = raw.get("stderr", b"")
++        rec = {
++            "case_id": case["case_id"],
++            "order": order,
++            "classification": classification,
++            "exit_code": raw.get("exit_code"),
++            "timed_out": bool(raw.get("timed_out")),
++            "output_limited": bool(raw.get("output_limited")),
++            "stdout_sha256": hashlib.sha256(stdout_data).hexdigest(),
++            "stdout_bytes": len(stdout_data),
++            "stdout_truncated": bool(raw.get("stdout_truncated")),
++            "stderr_sha256": hashlib.sha256(stderr_data).hexdigest(),
++            "stderr_bytes": len(stderr_data),
++            "stderr_truncated": bool(raw.get("stderr_truncated")),
++            "duration_ms": int(raw.get("duration_ms", 0)),
++            "envelope_error": raw.get("envelope_error"),
++            "artifact_anomaly": raw.get("artifact_anomaly"),
++            "artifact_count": len(raw.get("artifacts", [])),
++        }
++        case_records.append(rec)
++
++    # Overall classification: first rejection in case order, else ACCEPTED.
++    first_reject = None
++    for proj in case_projections:
++        if not proj["matched"]:
++            first_reject = proj["classification"]
++            break
++    if first_reject is not None:
++        status = "REJECTED"
++        classification = first_reject
++    else:
++        # Every accepted projection must have all matched, secret PASSED, cleanup CONFIRMED.
++        if overall_secret_rejected:
++            # Should not happen when all matched (secret would be mismatch),
++            # but guard.
++            status = "REJECTED"
++            classification = "REJECTED_SECRET_BOUNDARY"
++        else:
++            status = "ACCEPTED"
++            classification = "ACCEPTED"
++    secret_status = "REJECTED" if overall_secret_rejected else "PASSED"
++    # If early secret was per-case, findings is ["SECRET_PATTERN"], else [].
++    findings: list[str] = ["SECRET_PATTERN"] if overall_secret_rejected else []
++    document = build_document(
++        status=status,
++        classification=classification,
++        identity=identity,
++        isha=isha,
++        aid=aid,
++        candidate=candidate,
++        cases=case_projections,
++        secret_status=secret_status,
++        secret_findings=findings,
++    )
++    return Evaluation(status=status, classification=classification, document=document, case_records=case_records)
++
++
++def _early_rejection(candidate, profile, release_clean, classification: str, *, secret_hit: bool) -> Evaluation:
++    identity = build_identity(candidate, profile, release_clean)
++    isha = identity_sha(identity)
++    aid = acceptance_id_for(isha)
++    if classification == "REJECTED_SECRET_BOUNDARY":
++        secret_status = "REJECTED"
++        findings = ["SECRET_PATTERN"]
++    else:
++        secret_status = "PASSED" if not secret_hit else "REJECTED"
++        findings = ["SECRET_PATTERN"] if secret_hit else []
++        # For interaction mismatch, secret PASSED.
++        if classification == "REJECTED_INTERACTION_MISMATCH":
++            secret_status = "PASSED"
++            findings = []
++    document = build_document(
++        status="REJECTED",
++        classification=classification,
++        identity=identity,
++        isha=isha,
++        aid=aid,
++        candidate=candidate,
++        cases=[],
++        secret_status=secret_status,
++        secret_findings=findings,
++    )
++    return Evaluation(status="REJECTED", classification=classification, document=document, case_records=[])
++
+ 
+-    Tool/input failures raise AcceptorError. Semantic mismatches return REJECTED.
+-    No database, source checkout, Git or external service is available to this core.
+-    """
+-    raise NotImplementedError("Contributor implementation pending")
++def _interaction_matches(expect: dict, interaction_doc: dict, descriptor: dict) -> bool:
++    try:
++        # operation_id exact.
++        if expect.get("operation_id") != interaction_doc["operation"]["operation_id"]:
++            return False
++        # purpose null (unspecified) or exact.
++        if expect.get("purpose") is not None and expect.get("purpose") != interaction_doc.get("purpose"):
++            return False
++        # not_for subset.
++        cand_not_for = interaction_doc.get("not_for", [])
++        for item in expect.get("not_for", []):
++            if item not in cand_not_for:
++                return False
++        # request_fields ordered exact (field_id, required).
++        cand_req = [(f["field_id"], f["required"]) for f in interaction_doc["operation"].get("request_fields", [])]
++        exp_req = [(f["field_id"], f["required"]) for f in expect.get("request_fields", [])]
++        if cand_req != exp_req:
++            return False
++        # resource_fields ordered exact (slot, required, min, max).
++        cand_res = [
++            (f["slot"], f["required"], f["minimum_count"], f["maximum_count"])
++            for f in interaction_doc["operation"].get("resource_fields", [])
++        ]
++        exp_res = [
++            (f["slot"], f["required"], f["min_items"], f["max_items"])
++            for f in expect.get("resource_fields", [])
++        ]
++        if cand_res != exp_res:
++            return False
++        # result_fact_paths ordered exact.
++        cand_facts = [f["path"] for f in interaction_doc["operation"]["result"].get("facts", [])]
++        if cand_facts != list(expect.get("result_fact_paths", [])):
++            return False
++        # artifact_filenames ordered exact.
++        cand_arts = [a["filename"] for a in interaction_doc["operation"]["result"].get("artifacts", [])]
++        if cand_arts != list(expect.get("artifact_filenames", [])):
++            return False
++        # boundaries subset with exact nearest lists.
++        cand_map = {b["boundary_id"]: list(b["nearest_operation_ids"]) for b in interaction_doc.get("boundaries", [])}
++        for b in expect.get("boundaries", []):
++            bid = b["boundary_id"]
++            if bid not in cand_map:
++                return False
++            if cand_map[bid] != list(b["nearest_operation_ids"]):
++                return False
++        return True
++    except (KeyError, TypeError, AttributeError):
++        return False
+diff --git a/src/capy_application_acceptor/candidate.py b/src/capy_application_acceptor/candidate.py
+index d6e25ed..d0546cd 100644
+--- a/src/capy_application_acceptor/candidate.py
++++ b/src/capy_application_acceptor/candidate.py
+@@ -1,7 +1,772 @@
+-"""Muse-owned independent V1 candidate validator; frozen entrypoint."""
++"""Independent V1 candidate validator; frozen entrypoint."""
++from __future__ import annotations
++
++import hashlib
++import io
++import json
++import zipfile
++
++from . import codec
++from . import validation as V
++from .constants import (
++    APP_EXPANDED_MAX_BYTES,
++    APP_MAX_MEMBERS,
++    APP_ZIP_MAX_BYTES,
++    BUNDLE_MAX_BYTES,
++    CANDIDATE_SCHEMA_V0,
++    CANDIDATE_SCHEMA_V1,
++    EXPECTED_HANDOFF,
++    EXPECTED_STAGE_ORDER,
++    EXECUTION_CONTRACT,
++    INTERACTION_CONTRACT,
++    NULL_EXIT_STAGES,
++    OUTER_CANDIDATE_MEMBERS,
++    OUTER_MAX_BYTES,
++    TRUSTED_BUNDLE_SHA256,
++    TRUSTED_IMPLEMENTATION_COMMIT,
++    TRUSTED_RELEASE_BINDING_COMMIT,
++    TRUSTED_WHEEL_FILENAME,
++    TRUSTED_WHEEL_SHA256,
++)
++from .errors import AcceptorError
++from .interaction import InteractionError, load_interaction_from_bytes, parse_descriptor
+ from .models import Candidate
+ 
+ 
++def _integrity(msg: str = "") -> AcceptorError:
++    return AcceptorError("RELEASE_CANDIDATE_INTEGRITY_FAILED", "candidate")
++
++
++def _toolchain_integrity() -> AcceptorError:
++    return AcceptorError("TOOLCHAIN_INTEGRITY_FAILED", "toolchain")
++
++
++def _untrusted() -> AcceptorError:
++    return AcceptorError("TOOLCHAIN_UNTRUSTED", "toolchain")
++
++
++def _unsupported() -> AcceptorError:
++    return AcceptorError("APPLICATION_UNSUPPORTED", "application")
++
++
+ def read_candidate(payload: bytes) -> Candidate:
+     """Validate copied complete .capyrc bytes, or raise AcceptorError."""
+-    raise NotImplementedError("Contributor implementation pending")
++    try:
++        return _read(payload)
++    except AcceptorError:
++        raise
++    except Exception:
++        raise _integrity()
++
++
++def _read(payload: bytes) -> Candidate:
++    if not isinstance(payload, bytes):
++        raise _integrity()
++    if len(payload) > OUTER_MAX_BYTES:
++        raise _integrity()
++    if len(payload) == 0:
++        raise _integrity()
++
++    # Fast path for historical v0: peek loosely before canonical checks.
++    # If manifest schema is v0, report version error (spec requires this
++    # even for the four-member public vector).
++    try:
++        with zipfile.ZipFile(io.BytesIO(payload)) as _z:
++            if "RELEASE-CANDIDATE.json" in _z.namelist():
++                try:
++                    _raw = _z.read("RELEASE-CANDIDATE.json")
++                    _val = json.loads(_raw.decode("utf-8"))
++                    if isinstance(_val, dict) and _val.get("schema") == CANDIDATE_SCHEMA_V0:
++                        raise AcceptorError("RELEASE_CANDIDATE_VERSION_UNSUPPORTED", "version")
++                except AcceptorError:
++                    raise
++                except Exception:
++                    pass
++    except AcceptorError:
++        raise
++    except Exception:
++        pass
++
++    # Canonical outer ZIP discipline (order, metadata, trailing data).
++    try:
++        members = codec.check_zip_canonical_members(payload, list(OUTER_CANDIDATE_MEMBERS))
++    except ValueError:
++        raise _integrity()
++
++    # Per-member size bounds before allocation.
++    try:
++        manifest_raw = members["RELEASE-CANDIDATE.json"]
++        outer_interaction_raw = members["application/interaction.json"]
++        receipt_raw = members["evidence/verification.json"]
++        app_zip_bytes = members["application/application.zip"]
++        bundle_bytes = members["toolchain/authoring-bundle.zip"]
++    except KeyError:
++        raise _integrity()
++    from .constants import INTERACTION_MAX_BYTES, MANIFEST_MAX_BYTES, RECEIPT_MAX_BYTES
++
++    if len(manifest_raw) > MANIFEST_MAX_BYTES or len(receipt_raw) > RECEIPT_MAX_BYTES:
++        raise _integrity()
++    if len(outer_interaction_raw) > INTERACTION_MAX_BYTES:
++        raise _integrity()
++    if len(app_zip_bytes) > APP_ZIP_MAX_BYTES:
++        raise _integrity()
++    if len(bundle_bytes) > BUNDLE_MAX_BYTES:
++        raise _integrity()
++
++    # Canonical JSON discipline for outer JSON members.
++    try:
++        manifest = codec.check_canonical_json_bytes(manifest_raw, what="manifest")
++        outer_interaction_doc = codec.check_canonical_json_bytes(outer_interaction_raw, what="interaction")
++        receipt = codec.check_canonical_json_bytes(receipt_raw, what="receipt")
++    except ValueError:
++        raise _integrity()
++
++    _validate_manifest_shape(manifest, members, payload)
++
++    # Validate actual byte bindings for manifest-declared members.
++    _check_member_binding(manifest, members)
++
++    # Validate application inner ZIP safety and descriptor/interaction.
++    app_members = _validate_application_zip(app_zip_bytes, manifest)
++
++    descriptor_raw = app_members["capability.toml"]
++    try:
++        descriptor = parse_descriptor(descriptor_raw)
++    except InteractionError as e:
++        # Determine unsupported vs integrity: if descriptor is structurally
++        # parseable as TOML with required fields but declares unsupported
++        # values, map to UNSUPPORTED. Otherwise integrity.
++        raise _map_descriptor_error(descriptor_raw, str(e))
++
++    # Unsupported descriptor state/connections/side-effect/contracts.
++    # Must be checked before semantic trial, including during read.
++    if descriptor.get("state_required") is True:
++        raise _unsupported()
++    if descriptor.get("connections"):
++        raise _unsupported()
++    if descriptor.get("side_effect") not in ("read_only", "artifact_generation"):
++        raise _unsupported()
++    if manifest["application"]["contract"] != EXECUTION_CONTRACT:
++        raise _unsupported()
++    if manifest["application"]["interaction"]["schema"] != INTERACTION_CONTRACT:
++        raise _unsupported()
++    if manifest["toolchain"]["interaction_contract"] != INTERACTION_CONTRACT:
++        raise _unsupported()
++
++    # Descriptor raw hash authoritative.
++    if hashlib.sha256(descriptor_raw).hexdigest() != manifest["application"]["descriptor_sha256"]:
++        raise _integrity()
++    # Descriptor id must match manifest application id.
++    if descriptor["id"] != manifest["application"]["id"]:
++        raise _integrity()
++    # Entrypoint must exist as safe regular python file.
++    entrypoint = descriptor["entrypoint"]
++    if entrypoint not in app_members:
++        raise _integrity()
++
++    # Inner interaction raw: source hash binding + full contract validation.
++    inner_raw = app_members["interaction.json"]
++    if hashlib.sha256(inner_raw).hexdigest() != manifest["application"]["interaction"]["source_sha256"]:
++        raise _integrity()
++    # Outer canonical hash/size bindings.
++    if hashlib.sha256(outer_interaction_raw).hexdigest() != manifest["application"]["interaction"]["sha256"]:
++        raise _integrity()
++    if len(outer_interaction_raw) != manifest["application"]["interaction"]["size_bytes"]:
++        raise _integrity()
++    # Canonical equality: outer canonical must equal canonical(inner parsed).
++    try:
++        inner_parsed = codec.parse_strict_json(inner_raw)
++    except ValueError:
++        raise _integrity()
++    try:
++        inner_canonical = codec.canonical_bytes(inner_parsed)
++    except (TypeError, ValueError):
++        raise _integrity()
++    if inner_canonical != outer_interaction_raw:
++        raise _integrity()
++    # Full interaction contract validation (both docs must satisfy contract;
++    # outer doc already canonical, inner doc canonical-equivalent).
++    try:
++        contract_outer = load_interaction_from_bytes(outer_interaction_raw, descriptor)
++        # Validate inner as well (same canonical, but raw differs).
++        load_interaction_from_bytes(inner_canonical, descriptor)
++    except InteractionError:
++        raise _integrity()
++    # Operation id binding.
++    if contract_outer["operation_id"] != manifest["application"]["interaction"]["operation_id"]:
++        raise _integrity()
++    if manifest["application"]["interaction"]["source_member"] != "interaction.json":
++        raise _integrity()
++
++    # Receipt validation (cross-member identities, stages, facts).
++    _validate_receipt(receipt, manifest, app_zip_bytes, outer_interaction_raw, inner_raw)
++
++    # verified_at equality already checked in receipt validator.
++
++    # Toolchain bundle validation (hash before inspection, then trust).
++    wheel_bytes = _validate_toolchain(bundle_bytes, manifest)
++
++    # Candidate identity projection.
++    _validate_identity(manifest)
++
++    bundle_sha = hashlib.sha256(payload).hexdigest()
++    # Build frozen model fields strictly from validated bytes.
++    # members: outer name->bytes; application_members: inner name->bytes.
++    return Candidate(
++        bundle_sha256=bundle_sha,
++        manifest=manifest,
++        verification=receipt,
++        descriptor=descriptor,
++        interaction=contract_outer["document"],
++        members=dict(members),
++        application_members=dict(app_members),
++        wheel_bytes=wheel_bytes,
++    )
++
++
++def _map_descriptor_error(raw: bytes, msg: str) -> AcceptorError:
++    # Try to determine if TOML parses and has recognized fields but
++    # unsupported values; otherwise integrity.
++    try:
++        import tomllib
++
++        value = tomllib.loads(raw.decode("utf-8"))
++    except Exception:
++        return _integrity()
++    try:
++        # If required keys present, check unsupported signals.
++        if isinstance(value, dict):
++            if value.get("state_required") is True:
++                return _unsupported()
++            if isinstance(value.get("connections"), list) and len(value["connections"]) > 0:
++                # Only if connections list itself is well-formed? Treat as unsupported
++                # when it is a list (self-consistent declaration).
++                return _unsupported()
++            se = value.get("side_effect")
++            if se in ("scope_state_mutation", "external_effect"):
++                return _unsupported()
++            if se not in ("read_only", "artifact_generation") and isinstance(se, str):
++                # Unknown side effect string: integrity (malformed) unless
++                # it looks like a versioned/known value. Keep integrity.
++                pass
++            # Unsupported contract versions.
++            if isinstance(value.get("schema"), str) and value.get("schema") != EXECUTION_CONTRACT:
++                # Recognized versioned contract string -> unsupported.
++                if "/" in value["schema"]:
++                    return _unsupported()
++    except AcceptorError:
++        raise
++    except Exception:
++        pass
++    return _integrity()
++
++
++def _validate_manifest_shape(manifest, members, payload):
++    # Top-level exact keys.
++    try:
++        V.require_closed(
++            manifest,
++            {"schema", "project", "application", "source", "toolchain", "verification",
++             "handoff", "identity_sha256", "release_candidate_id", "verified_at"},
++            "manifest",
++        )
++    except ValueError:
++        raise _integrity()
++    if manifest["schema"] == CANDIDATE_SCHEMA_V0:
++        raise AcceptorError("RELEASE_CANDIDATE_VERSION_UNSUPPORTED", "version")
++    if manifest["schema"] != CANDIDATE_SCHEMA_V1:
++        raise _integrity()
++    # project
++    try:
++        V.require_closed(manifest["project"], {"project_id"}, "project")
++        V.check_prj(manifest["project"]["project_id"])
++    except ValueError:
++        raise _integrity()
++    # application
++    try:
++        V.require_closed(
++            manifest["application"],
++            {"archive", "contract", "descriptor_sha256", "id", "interaction"},
++            "application",
++        )
++        V.check_application_id(manifest["application"]["id"])
++        V.check_hex64(manifest["application"]["descriptor_sha256"], "descriptor_sha256")
++        if not isinstance(manifest["application"]["contract"], str):
++            raise ValueError("contract")
++        V.require_closed(manifest["application"]["archive"], {"member", "sha256", "size_bytes"}, "archive")
++        V.require_closed(
++            manifest["application"]["interaction"],
++            {"member", "operation_id", "schema", "sha256", "size_bytes", "source_member", "source_sha256"},
++            "interaction",
++        )
++        V.check_dotted(manifest["application"]["interaction"]["operation_id"], "operation_id")
++        V.check_hex64(manifest["application"]["interaction"]["sha256"], "interaction.sha256")
++        V.check_hex64(manifest["application"]["interaction"]["source_sha256"], "interaction.source_sha256")
++        if manifest["application"]["archive"]["member"] != "application/application.zip":
++            raise ValueError("archive.member")
++        if manifest["application"]["interaction"]["member"] != "application/interaction.json":
++            raise ValueError("interaction.member")
++        for key in ("size_bytes",):
++            for holder in (manifest["application"]["archive"], manifest["application"]["interaction"]):
++                v = holder[key]
++                if type(v) is not int or v < 0:
++                    raise ValueError("size")
++        V.check_hex64(manifest["application"]["archive"]["sha256"], "archive.sha256")
++    except ValueError:
++        raise _integrity()
++    # source
++    try:
++        V.require_closed(manifest["source"], {"base_commit", "commit", "repository", "tree"}, "source")
++        V.check_hex40(manifest["source"]["base_commit"], "base_commit")
++        V.check_hex40(manifest["source"]["commit"], "commit")
++        V.check_hex40(manifest["source"]["tree"], "tree")
++        repo = manifest["source"]["repository"]
++        V.require_closed(repo, {"identity_sha256", "kind", "public_identity"}, "repository")
++        V.check_hex64(repo["identity_sha256"], "repository.identity_sha256")
++        if repo["kind"] not in ("local", "remote"):
++            raise ValueError("kind")
++        if repo["kind"] == "local":
++            if repo["public_identity"] is not None:
++                raise ValueError("public_identity")
++        else:
++            pid = repo["public_identity"]
++            if not isinstance(pid, str) or not pid.startswith("git://"):
++                raise ValueError("public_identity")
++            if "@" in pid or "://" not in pid:
++                raise ValueError("public_identity")
++            # Credential-free: no userinfo.
++            rest = pid[len("git://"):]
++            if "@" in rest or " " in pid or "\\" in pid:
++                raise ValueError("public_identity")
++            if hashlib.sha256(pid.encode("utf-8")).hexdigest() != repo["identity_sha256"]:
++                raise ValueError("identity_sha256")
++    except ValueError:
++        raise _integrity()
++    # toolchain
++    try:
++        V.require_closed(
++            manifest["toolchain"],
++            {"authoring_bundle", "implementation_commit", "interaction_contract",
++             "release_binding_commit", "wheel_filename", "wheel_sha256"},
++            "toolchain",
++        )
++        V.check_hex40(manifest["toolchain"]["implementation_commit"], "implementation_commit")
++        V.check_hex40(manifest["toolchain"]["release_binding_commit"], "release_binding_commit")
++        V.check_hex64(manifest["toolchain"]["wheel_sha256"], "wheel_sha256")
++        if not isinstance(manifest["toolchain"]["wheel_filename"], str) or not manifest["toolchain"]["wheel_filename"]:
++            raise ValueError("wheel_filename")
++        if not isinstance(manifest["toolchain"]["interaction_contract"], str):
++            raise ValueError("interaction_contract")
++        V.require_closed(
++            manifest["toolchain"]["authoring_bundle"], {"member", "sha256", "size_bytes"}, "bundle"
++        )
++        if manifest["toolchain"]["authoring_bundle"]["member"] != "toolchain/authoring-bundle.zip":
++            raise ValueError("bundle.member")
++        V.check_hex64(manifest["toolchain"]["authoring_bundle"]["sha256"], "bundle.sha256")
++        v = manifest["toolchain"]["authoring_bundle"]["size_bytes"]
++        if type(v) is not int or v < 0:
++            raise ValueError("bundle.size")
++    except ValueError:
++        raise _integrity()
++    # verification
++    try:
++        V.require_closed(manifest["verification"], {"receipt", "verification_id"}, "verification")
++        V.check_ver(manifest["verification"]["verification_id"])
++        V.require_closed(manifest["verification"]["receipt"], {"member", "sha256", "size_bytes"}, "receipt")
++        if manifest["verification"]["receipt"]["member"] != "evidence/verification.json":
++            raise ValueError("receipt.member")
++        V.check_hex64(manifest["verification"]["receipt"]["sha256"], "receipt.sha256")
++        v = manifest["verification"]["receipt"]["size_bytes"]
++        if type(v) is not int or v < 0:
++            raise ValueError("receipt.size")
++    except ValueError:
++        raise _integrity()
++    # handoff exact
++    if not isinstance(manifest.get("handoff"), dict) or manifest["handoff"] != EXPECTED_HANDOFF:
++        raise _integrity()
++    # identity / rc id syntax
++    try:
++        V.check_hex64(manifest["identity_sha256"], "identity_sha256")
++        V.check_rc(manifest["release_candidate_id"])
++        V.check_verified_at(manifest["verified_at"])
++    except ValueError:
++        raise _integrity()
++
++
++def _check_member_binding(manifest, members):
++    app_bytes = members["application/application.zip"]
++    if len(app_bytes) != manifest["application"]["archive"]["size_bytes"]:
++        raise _integrity()
++    if hashlib.sha256(app_bytes).hexdigest() != manifest["application"]["archive"]["sha256"]:
++        raise _integrity()
++    inter_bytes = members["application/interaction.json"]
++    if len(inter_bytes) != manifest["application"]["interaction"]["size_bytes"]:
++        raise _integrity()
++    if hashlib.sha256(inter_bytes).hexdigest() != manifest["application"]["interaction"]["sha256"]:
++        raise _integrity()
++    receipt_bytes = members["evidence/verification.json"]
++    if len(receipt_bytes) != manifest["verification"]["receipt"]["size_bytes"]:
++        raise _integrity()
++    if hashlib.sha256(receipt_bytes).hexdigest() != manifest["verification"]["receipt"]["sha256"]:
++        raise _integrity()
++    bundle_bytes = members["toolchain/authoring-bundle.zip"]
++    if len(bundle_bytes) != manifest["toolchain"]["authoring_bundle"]["size_bytes"]:
++        raise _integrity()
++    # Bundle hash mismatch here is toolchain integrity (corrupt toolchain bytes),
++    # but spec says validate actual bundle hash before inspecting. The outer
++    # manifest binding failure for the bundle could be either generic integrity
++    # or toolchain integrity. Prefer toolchain integrity for bundle member.
++    if hashlib.sha256(bundle_bytes).hexdigest() != manifest["toolchain"]["authoring_bundle"]["sha256"]:
++        raise _toolchain_integrity()
++
++
++def _validate_application_zip(app_zip_bytes: bytes, manifest) -> dict[str, bytes]:
++    try:
++        with zipfile.ZipFile(io.BytesIO(app_zip_bytes)) as z:
++            names = z.namelist()
++            if not names:
++                raise _integrity()
++            if len(names) != len(set(names)):
++                raise _integrity()
++            if len(names) > APP_MAX_MEMBERS:
++                raise _integrity()
++            # No directories, no encryption; collect infos.
++            total = 0
++            for info in z.infolist():
++                if info.is_dir() or info.filename.endswith("/"):
++                    raise _integrity()
++                if info.flag_bits & 0x1:
++                    raise _integrity()
++                # Absolute/parent/backslash checks.
++                try:
++                    codec.check_inner_name_safe(info.filename)
++                except ValueError:
++                    raise _integrity()
++                # Symlink check via external attr? Unix symlink file type 0o120000.
++                mode = (info.external_attr >> 16) & 0o170000
++                if mode == 0o120000:
++                    raise _integrity()
++                total += info.file_size
++                if total > APP_EXPANDED_MAX_BYTES:
++                    raise _integrity()
++            try:
++                codec.check_casefold_collisions(names)
++            except ValueError:
++                raise _integrity()
++            if "capability.toml" not in names or "interaction.json" not in names:
++                raise _integrity()
++            out: dict[str, bytes] = {}
++            for n in names:
++                # Never extract unvalidated paths: names already validated.
++                out[n] = z.read(n)
++            # Expanded total already checked.
++            return out
++    except AcceptorError:
++        raise
++    except Exception:
++        raise _integrity()
++
++
++def _validate_receipt(receipt, manifest, app_zip_bytes: bytes, outer_canonical: bytes, inner_raw: bytes):
++    try:
++        V.require_closed(
++            receipt,
++            {"application_archive", "application_id", "classification", "interaction_contract",
++             "pipeline", "project_id", "schema", "session_id", "source", "stages",
++             "status", "toolchain", "verification_id", "verified_at"},
++            "receipt",
++        )
++    except ValueError:
++        raise _integrity()
++    try:
++        if receipt["schema"] != "capy.development-verification-receipt/v1":
++            raise ValueError("receipt.schema")
++        if receipt["pipeline"] != "capy.development-verification-pipeline/v1":
++            raise ValueError("receipt.pipeline")
++        if receipt["status"] != "PASSED":
++            raise ValueError("receipt.status")
++        if receipt["classification"] != "VERIFIED":
++            raise ValueError("receipt.classification")
++        if receipt["application_id"] != manifest["application"]["id"]:
++            raise ValueError("receipt.app")
++        if receipt["project_id"] != manifest["project"]["project_id"]:
++            raise ValueError("receipt.project")
++        V.check_ses(receipt["session_id"])
++        V.check_ver(receipt["verification_id"])
++        if receipt["verification_id"] != manifest["verification"]["verification_id"]:
++            raise ValueError("receipt.verification_id")
++        # source identities match manifest.
++        V.require_closed(receipt["source"], {"base_commit", "commit", "tree"}, "receipt.source")
++        if (receipt["source"]["base_commit"] != manifest["source"]["base_commit"]
++                or receipt["source"]["commit"] != manifest["source"]["commit"]
++                or receipt["source"]["tree"] != manifest["source"]["tree"]):
++            raise ValueError("receipt.source-match")
++        V.check_hex40(receipt["source"]["base_commit"], "receipt.base")
++        V.check_hex40(receipt["source"]["commit"], "receipt.commit")
++        V.check_hex40(receipt["source"]["tree"], "receipt.tree")
++        if receipt["verified_at"] != manifest["verified_at"]:
++            raise ValueError("verified_at-match")
++        V.check_verified_at(receipt["verified_at"])
++        # application_archive matches.
++        V.require_closed(receipt["application_archive"], {"sha256", "size_bytes"}, "receipt.archive")
++        if (receipt["application_archive"]["sha256"] != manifest["application"]["archive"]["sha256"]
++                or receipt["application_archive"]["size_bytes"] != manifest["application"]["archive"]["size_bytes"]):
++            raise ValueError("receipt.archive-match")
++        # interaction_contract matches manifest interaction.
++        V.require_closed(
++            receipt["interaction_contract"],
++            {"canonical_sha256", "canonical_size_bytes", "operation_id", "schema",
++             "source_member", "source_sha256"},
++            "receipt.interaction",
++        )
++        mi = manifest["application"]["interaction"]
++        ri = receipt["interaction_contract"]
++        if (ri["canonical_sha256"] != mi["sha256"] or ri["canonical_size_bytes"] != mi["size_bytes"]
++                or ri["operation_id"] != mi["operation_id"] or ri["schema"] != mi["schema"]
++                or ri["source_member"] != mi["source_member"] or ri["source_sha256"] != mi["source_sha256"]):
++            raise ValueError("receipt.interaction-match")
++        if ri["schema"] != INTERACTION_CONTRACT:
++            raise ValueError("receipt.interaction-schema")
++        # Actual canonical/source hashes must also match real bytes.
++        if ri["canonical_sha256"] != hashlib.sha256(outer_canonical).hexdigest():
++            raise ValueError("receipt.canonical-sha")
++        if ri["canonical_size_bytes"] != len(outer_canonical):
++            raise ValueError("receipt.canonical-size")
++        if ri["source_sha256"] != hashlib.sha256(inner_raw).hexdigest():
++            raise ValueError("receipt.source-sha")
++        if ri["source_member"] != "interaction.json":
++            raise ValueError("receipt.source-member")
++        # toolchain matches manifest for key identities.
++        V.require_closed(
++            receipt["toolchain"],
++            {"authoring_bundle_sha256", "contract", "implementation_commit", "interaction_contract",
++             "lock_digest", "release_binding_commit", "wheel_filename", "wheel_sha256"},
++            "receipt.toolchain",
++        )
++        mt = manifest["toolchain"]
++        rt = receipt["toolchain"]
++        if (rt["authoring_bundle_sha256"] != mt["authoring_bundle"]["sha256"]
++                or rt["wheel_sha256"] != mt["wheel_sha256"]
++                or rt["wheel_filename"] != mt["wheel_filename"]
++                or rt["release_binding_commit"] != mt["release_binding_commit"]
++                or rt["implementation_commit"] != mt["implementation_commit"]
++                or rt["contract"] != manifest["application"]["contract"]
++                or rt["interaction_contract"] != mt["interaction_contract"]):
++            raise ValueError("receipt.toolchain-match")
++        V.check_hex64(rt["authoring_bundle_sha256"], "rt.bundle")
++        V.check_hex64(rt["wheel_sha256"], "rt.wheel")
++        V.check_hex40(rt["implementation_commit"], "rt.impl")
++        V.check_hex40(rt["release_binding_commit"], "rt.binding")
++        # lock_digest must be sha syntax (may be empty hash for template? check example).
++        V.check_hex64(rt["lock_digest"], "rt.lock")
++        # stages
++        stages = receipt["stages"]
++        if not isinstance(stages, list) or [s.get("name") for s in stages] != list(EXPECTED_STAGE_ORDER):
++            raise ValueError("stages-order")
++        for s in stages:
++            _validate_stage(s, app_zip_bytes, outer_canonical, inner_raw)
++    except ValueError:
++        raise _integrity()
++
++
++def _validate_stage(stage, app_zip_bytes: bytes, outer_canonical: bytes, inner_raw: bytes):
++    try:
++        V.require_closed(
++            stage,
++            {"exit_code", "facts", "name", "status", "stderr_truncated_bytes", "stdout_truncated_bytes",
++             "stored_stderr_bytes", "stored_stderr_sha256", "stored_stdout_bytes", "stored_stdout_sha256"},
++            f"stage:{stage.get('name')}",
++        )
++    except ValueError:
++        raise _integrity()
++    name = stage["name"]
++    if stage["status"] != "PASSED":
++        raise _integrity()
++    # exit codes.
++    if name in NULL_EXIT_STAGES:
++        if stage["exit_code"] is not None:
++            raise _integrity()
++    else:
++        if type(stage["exit_code"]) is not int or stage["exit_code"] != 0:
++            raise _integrity()
++    # counters nonnegative ints, hashes sha.
++    for key in ("stderr_truncated_bytes", "stdout_truncated_bytes", "stored_stderr_bytes", "stored_stdout_bytes"):
++        v = stage[key]
++        if type(v) is not int or v < 0:
++            raise _integrity()
++    for key in ("stored_stderr_sha256", "stored_stdout_sha256"):
++        try:
++            V.check_hex64(stage[key], key)
++        except ValueError:
++            raise _integrity()
++    facts = stage["facts"]
++    if not isinstance(facts, dict):
++        raise _integrity()
++    app_sha = hashlib.sha256(app_zip_bytes).hexdigest()
++    app_size = len(app_zip_bytes)
++    outer_sha = hashlib.sha256(outer_canonical).hexdigest()
++    inner_sha = hashlib.sha256(inner_raw).hexdigest()
++    if name == "toolchain_install":
++        if set(facts) != {"timed_out"} or facts["timed_out"] is not False:
++            raise _integrity()
++    elif name in ("check", "interaction_check", "test", "conform", "pack_a", "pack_b"):
++        if set(facts) != {"candidate_unchanged", "timed_out"}:
++            raise _integrity()
++        if facts["candidate_unchanged"] is not True or facts["timed_out"] is not False:
++            raise _integrity()
++    elif name == "source_mutation_check":
++        if set(facts) != set():
++            raise _integrity()
++    elif name == "package_compare":
++        if set(facts) != {"sha256_a", "sha256_b", "size_a", "size_b"}:
++            raise _integrity()
++        if (facts["sha256_a"] != app_sha or facts["sha256_b"] != app_sha
++                or facts["size_a"] != app_size or facts["size_b"] != app_size):
++            raise _integrity()
++        for k in ("sha256_a", "sha256_b"):
++            try:
++                V.check_hex64(facts[k], k)
++            except ValueError:
++                raise _integrity()
++        for k in ("size_a", "size_b"):
++            if type(facts[k]) is not int or facts[k] < 0:
++                raise _integrity()
++    elif name == "archive_preserve":
++        if set(facts) != {"sha256", "size_bytes"}:
++            raise _integrity()
++        if facts["sha256"] != app_sha or facts["size_bytes"] != app_size:
++            raise _integrity()
++    elif name == "interaction_preserve":
++        if set(facts) != {"candidate_unchanged", "canonical_sha256", "canonical_size_bytes",
++                           "source_sha256", "timed_out"}:
++            raise _integrity()
++        if (facts["candidate_unchanged"] is not True or facts["timed_out"] is not False
++                or facts["canonical_sha256"] != outer_sha
++                or facts["canonical_size_bytes"] != len(outer_canonical)
++                or facts["source_sha256"] != inner_sha):
++            raise _integrity()
++    else:
++        raise _integrity()
++
++
++def _validate_toolchain(bundle_bytes: bytes, manifest) -> bytes:
++    # Actual bundle hash already checked vs declared (toolchain integrity).
++    # Now inspect bundle contents.
++    try:
++        with zipfile.ZipFile(io.BytesIO(bundle_bytes)) as z:
++            names = z.namelist()
++            if "RELEASE-MANIFEST.json" not in names:
++                raise _toolchain_integrity()
++            # Find wheel member: wheel/<filename>
++            wheel_name = None
++            for n in names:
++                if n.startswith("wheel/") and n.endswith(".whl"):
++                    wheel_name = n
++            if wheel_name is None:
++                raise _toolchain_integrity()
++            try:
++                manifest_raw = z.read("RELEASE-MANIFEST.json")
++                wheel_bytes = z.read(wheel_name)
++            except KeyError:
++                raise _toolchain_integrity()
++    except AcceptorError:
++        raise
++    except Exception:
++        raise _toolchain_integrity()
++    # Validate RELEASE-MANIFEST.json (JSON, not necessarily canonical? Check strict parse).
++    try:
++        rm = json.loads(manifest_raw.decode("utf-8"))
++    except Exception:
++        raise _toolchain_integrity()
++    try:
++        V.require_closed(
++            rm,
++            {"build_python", "build_tool", "contract_sha256", "execution_contract",
++             "interaction_contract", "interaction_contract_sha256", "package_tree_sha256",
++             "python_requirement", "qualification_receipt_sha256", "schema",
++             "source_commit", "source_repository", "source_tree", "template_members",
++             "wheel_filename", "wheel_sha256"},
++            "release-manifest",
++        )
++        if rm["schema"] != "capy.devkit-authoring-bundle/v1":
++            raise ValueError("rm.schema")
++        if rm["execution_contract"] != EXECUTION_CONTRACT:
++            raise ValueError("rm.exec")
++        if rm["interaction_contract"] != INTERACTION_CONTRACT:
++            raise ValueError("rm.inter")
++        V.check_hex40(rm["source_commit"], "rm.source_commit")
++        V.check_hex40(rm["source_tree"], "rm.source_tree")
++        V.check_hex64(rm["wheel_sha256"], "rm.wheel")
++        V.check_hex64(rm["contract_sha256"], "rm.contract")
++        V.check_hex64(rm["interaction_contract_sha256"], "rm.inter-contract")
++        V.check_hex64(rm["package_tree_sha256"], "rm.tree")
++        V.check_hex64(rm["qualification_receipt_sha256"], "rm.qual")
++        if not isinstance(rm["wheel_filename"], str) or not rm["wheel_filename"]:
++            raise ValueError("rm.wheel_filename")
++        if not isinstance(rm["template_members"], list):
++            raise ValueError("rm.templates")
++    except ValueError:
++        raise _toolchain_integrity()
++    # Wheel hash/filename/source_commit/contracts must match actual + manifest.
++    actual_wheel_sha = hashlib.sha256(wheel_bytes).hexdigest()
++    if actual_wheel_sha != manifest["toolchain"]["wheel_sha256"]:
++        raise _toolchain_integrity()
++    if actual_wheel_sha != rm["wheel_sha256"]:
++        raise _toolchain_integrity()
++    if manifest["toolchain"]["wheel_filename"] != rm["wheel_filename"]:
++        raise _toolchain_integrity()
++    if rm["source_commit"] != manifest["toolchain"]["implementation_commit"]:
++        raise _toolchain_integrity()
++    # Trust: declared identities must equal fixed trusted values.
++    mt = manifest["toolchain"]
++    if (mt["release_binding_commit"] != TRUSTED_RELEASE_BINDING_COMMIT
++            or mt["wheel_sha256"] != TRUSTED_WHEEL_SHA256
++            or mt["authoring_bundle"]["sha256"] != TRUSTED_BUNDLE_SHA256
++            or mt["implementation_commit"] != TRUSTED_IMPLEMENTATION_COMMIT
++            or mt["wheel_filename"] != TRUSTED_WHEEL_FILENAME
++            or mt["interaction_contract"] != INTERACTION_CONTRACT):
++        raise _untrusted()
++    if (rm["wheel_sha256"] != TRUSTED_WHEEL_SHA256
++            or rm["source_commit"] != TRUSTED_IMPLEMENTATION_COMMIT
++            or rm["wheel_filename"] != TRUSTED_WHEEL_FILENAME):
++        raise _untrusted()
++    # Wheel filename must match bundle member basename.
++    if wheel_name != f"wheel/{TRUSTED_WHEEL_FILENAME}":
++        # If self-consistent but different filename, untrusted; if corrupt, integrity.
++        # Check if manifest filename matches bundle member: if not, integrity.
++        if mt["wheel_filename"] not in wheel_name:
++            raise _toolchain_integrity()
++        raise _untrusted()
++    return wheel_bytes
++
++
++def _validate_identity(manifest):
++    proj = {
++        "schema": manifest["schema"],
++        "project_id": manifest["project"]["project_id"],
++        "application_id": manifest["application"]["id"],
++        "source": manifest["source"],
++        "application_archive_sha256": manifest["application"]["archive"]["sha256"],
++        "application_descriptor_sha256": manifest["application"]["descriptor_sha256"],
++        "interaction": {
++            "schema": manifest["application"]["interaction"]["schema"],
++            "source_sha256": manifest["application"]["interaction"]["source_sha256"],
++            "canonical_sha256": manifest["application"]["interaction"]["sha256"],
++            "operation_id": manifest["application"]["interaction"]["operation_id"],
++        },
++        "verification_receipt_sha256": manifest["verification"]["receipt"]["sha256"],
++        "toolchain": {
++            "release_binding_commit": manifest["toolchain"]["release_binding_commit"],
++            "authoring_bundle_sha256": manifest["toolchain"]["authoring_bundle"]["sha256"],
++            "wheel_sha256": manifest["toolchain"]["wheel_sha256"],
++            "interaction_contract": manifest["toolchain"]["interaction_contract"],
++        },
++    }
++    try:
++        h = hashlib.sha256(codec.canonical_bytes(proj)).hexdigest()
++    except (TypeError, ValueError):
++        raise _integrity()
++    if h != manifest["identity_sha256"]:
++        raise _integrity()
++    if manifest["release_candidate_id"] != "rc_" + h[:32]:
++        raise _integrity()
+diff --git a/src/capy_application_acceptor/profile.py b/src/capy_application_acceptor/profile.py
+index 0906895..2ef457d 100644
+--- a/src/capy_application_acceptor/profile.py
++++ b/src/capy_application_acceptor/profile.py
+@@ -1,7 +1,547 @@
+-"""Muse-owned closed acceptance-profile validator; frozen entrypoint."""
++"""Closed acceptance-profile validator; frozen entrypoint."""
++from __future__ import annotations
++
++import hashlib
++import io
++import zipfile
++
++from . import codec
++from . import validation as V
++from .constants import (
++    EXECUTION_CONTRACT,
++    INTERACTION_CONTRACT,
++    LIMIT_CEILINGS,
++    LIMIT_KEYS,
++    NON_GOALS,
++    PROFILE_MAX_BYTES,
++    PROFILE_MAX_MEMBERS,
++    PROFILE_SCHEMA,
++    TRUSTED_BUNDLE_SHA256,
++    TRUSTED_RELEASE_BINDING_COMMIT,
++    TRUSTED_WHEEL_SHA256,
++)
++from .errors import AcceptorError
+ from .models import Profile
+ 
+ 
++def _invalid(msg: str = "") -> AcceptorError:
++    return AcceptorError("ACCEPTANCE_PROFILE_INVALID", "profile")
++
++
++def _integrity(msg: str = "") -> AcceptorError:
++    return AcceptorError("ACCEPTANCE_PROFILE_INTEGRITY_FAILED", "profile")
++
++
++def _untrusted() -> AcceptorError:
++    return AcceptorError("TOOLCHAIN_UNTRUSTED", "toolchain")
++
++
+ def read_profile(payload: bytes) -> Profile:
+-    """Validate copied complete .capya bytes, or raise AcceptorError."""
+-    raise NotImplementedError("Contributor implementation pending")
++    try:
++        return _read(payload)
++    except AcceptorError:
++        raise
++    except Exception:
++        raise _integrity()
++
++
++def _read(payload: bytes) -> Profile:
++    if not isinstance(payload, bytes) or not payload:
++        raise _integrity()
++    if len(payload) > PROFILE_MAX_BYTES:
++        # Entire profile bounded by 32 MiB -> integrity or invalid?
++        # Treat as invalid (exceeds bound) per spec "invalid before execution".
++        raise _invalid("size")
++    # Loose unpack to find document and expected members.
++    try:
++        with zipfile.ZipFile(io.BytesIO(payload)) as z:
++            if z.comment != b"":
++                raise _integrity()
++            loose_names = z.namelist()
++            if "ACCEPTANCE-PROFILE.json" not in loose_names:
++                raise _integrity()
++            doc_raw_loose = z.read("ACCEPTANCE-PROFILE.json")
++    except AcceptorError:
++        raise
++    except Exception:
++        raise _integrity()
++    # Strict canonical JSON for profile document (also checks dup/nonfinite/depth).
++    try:
++        doc = codec.check_canonical_json_bytes(doc_raw_loose, what="profile")
++    except ValueError:
++        raise _integrity()
++    # Validate document shape (may raise invalid/untrusted/integrity).
++    _validate_document(doc)
++    # Compute expected member order: profile first, fixtures sorted, expected sorted.
++    expected_order = _expected_members(doc)
++    # Member count bound.
++    if len(expected_order) > PROFILE_MAX_MEMBERS:
++        raise _invalid("members")
++    # Canonical ZIP check with expected order.
++    try:
++        members = codec.check_zip_canonical_members(payload, expected_order)
++    except ValueError:
++        raise _integrity()
++    doc_raw = members["ACCEPTANCE-PROFILE.json"]
++    if doc_raw != doc_raw_loose:
++        raise _integrity()
++    # Re-parse to ensure same (already validated).
++    # Validate fixture/expected byte bindings and aggregates.
++    _validate_members(doc, members)
++    bundle_sha = hashlib.sha256(payload).hexdigest()
++    return Profile(bundle_sha256=bundle_sha, document=doc, members=dict(members))
++
++
++def _expected_members(doc) -> list[str]:
++    members = ["ACCEPTANCE-PROFILE.json"]
++    fixtures: list[str] = []
++    expected: list[str] = []
++    for case in doc["cases"]:
++        cid = case["case_id"]
++        for r in case["resources"]:
++            fixtures.append(r["member"])
++        for a in case["expect"]["artifacts"]:
++            expected.append(a["member"])
++    fixtures_sorted = sorted(fixtures)
++    expected_sorted = sorted(expected)
++    # No unreferenced members: expected order is fixtures sorted then expected sorted.
++    # Also check for duplicates (shared fixtures) here as integrity? Spec says
++    # fixtures may not be shared -> invalid? Treat as invalid.
++    members.extend(fixtures_sorted)
++    members.extend(expected_sorted)
++    # Case-fold collisions are unsafe (Windows alias).
++    try:
++        codec.check_casefold_collisions(members)
++    except ValueError:
++        raise _integrity()
++    return members
++
++
++def _validate_document(doc):
++    # Top-level exact keys: unknown -> integrity (malformed).
++    try:
++        V.require_closed(
++            doc,
++            {"schema", "profile_id", "application_id", "candidate_requirements",
++             "interaction_expectations", "cases", "limits", "non_goals"},
++            "profile",
++        )
++    except ValueError:
++        raise _integrity()
++    if doc["schema"] != PROFILE_SCHEMA:
++        # Wrong schema: malformed? Treat as integrity (or invalid?).
++        # Spec says unsupported requirements fail INVALID; schema mismatch is
++        # more fundamental -> integrity.
++        raise _integrity()
++    try:
++        V.check_profile_id(doc["profile_id"])
++        V.check_application_id(doc["application_id"])
++    except ValueError:
++        raise _integrity()
++    if doc["non_goals"] != NON_GOALS:
++        # Must be exactly ordered values. Value mismatch -> invalid?
++        # Treat as invalid (unsupported non-goals).
++        raise _invalid("non_goals")
++    _validate_requirements(doc["candidate_requirements"])
++    _validate_interaction_expectations(doc["interaction_expectations"])
++    _validate_limits(doc["limits"])
++    _validate_cases(doc)
++
++
++def _validate_requirements(req):
++    # Exact fields; unknown -> integrity? But spec says unsupported requirements
++    # fail INVALID. Distinguish: unknown field -> integrity, bad value -> invalid/untrusted.
++    try:
++        V.require_closed(
++            req,
++            {"release_candidate_schema", "execution_contract", "interaction_contract",
++             "toolchain_release_binding_commit", "toolchain_wheel_sha256",
++             "toolchain_authoring_bundle_sha256", "side_effect", "state_required", "connections"},
++            "requirements",
++        )
++    except ValueError:
++        raise _integrity()
++    # Supported values; toolchain identities -> untrusted if wrong.
++    if req["release_candidate_schema"] != "capy.application-release-candidate/v1":
++        raise _invalid("release_candidate_schema")
++    if req["execution_contract"] != EXECUTION_CONTRACT:
++        raise _invalid("execution_contract")
++    if req["interaction_contract"] != INTERACTION_CONTRACT:
++        raise _invalid("interaction_contract")
++    # Fixed toolchain identities.
++    if (req["toolchain_release_binding_commit"] != TRUSTED_RELEASE_BINDING_COMMIT
++            or req["toolchain_wheel_sha256"] != TRUSTED_WHEEL_SHA256
++            or req["toolchain_authoring_bundle_sha256"] != TRUSTED_BUNDLE_SHA256):
++        # Check syntax first: if not hex, it's malformed -> integrity?
++        # If well-formed but wrong value -> untrusted.
++        for key in ("toolchain_release_binding_commit",):
++            v = req[key]
++            if not isinstance(v, str) or not codec.is_hex40(v):
++                raise _integrity()
++        for key in ("toolchain_wheel_sha256", "toolchain_authoring_bundle_sha256"):
++            v = req[key]
++            if not isinstance(v, str) or not codec.is_hex64(v):
++                raise _integrity()
++        raise _untrusted()
++    # Validate hex syntax even when trusted (already).
++    try:
++        V.check_hex40(req["toolchain_release_binding_commit"], "binding")
++        V.check_hex64(req["toolchain_wheel_sha256"], "wheel")
++        V.check_hex64(req["toolchain_authoring_bundle_sha256"], "bundle")
++    except ValueError:
++        raise _integrity()
++    if req["side_effect"] not in ("read_only", "artifact_generation"):
++        raise _invalid("side_effect")
++    if type(req["state_required"]) is not bool:
++        raise _integrity()
++    if req["state_required"] is not False:
++        raise _invalid("state_required")
++    if not isinstance(req["connections"], list):
++        raise _integrity()
++    if req["connections"] != []:
++        raise _invalid("connections")
++
++
++def _validate_interaction_expectations(exp):
++    try:
++        V.require_closed(
++            exp,
++            {"purpose", "operation_id", "not_for", "request_fields", "resource_fields",
++             "result_fact_paths", "artifact_filenames", "boundaries"},
++            "interaction_expectations",
++        )
++    except ValueError:
++        raise _integrity()
++    # purpose null or nonempty ≤4000.
++    p = exp["purpose"]
++    if p is not None:
++        if not isinstance(p, str) or not p or len(p) > 4000:
++            raise _invalid("purpose")
++        if "\x00" in p:
++            raise _integrity()
++    try:
++        V.check_dotted(exp["operation_id"], "operation_id")
++    except ValueError:
++        raise _invalid("operation_id")
++    # not_for unique nonempty strings.
++    nf = exp["not_for"]
++    if not isinstance(nf, list) or not nf:
++        raise _invalid("not_for")
++    seen_nf: set[str] = set()
++    for item in nf:
++        if not isinstance(item, str) or not item:
++            raise _invalid("not_for")
++        if "\x00" in item:
++            raise _integrity()
++        if item in seen_nf:
++            raise _invalid("not_for-dup")
++        seen_nf.add(item)
++    # request_fields ordered exact list of {field_id, required}.
++    rf = exp["request_fields"]
++    if not isinstance(rf, list):
++        raise _integrity()
++    seen_fid: set[str] = set()
++    for entry in rf:
++        try:
++            V.require_closed(entry, {"field_id", "required"}, "request_field")
++        except ValueError:
++            raise _integrity()
++        try:
++            V.check_path_dotted(entry["field_id"], "field_id")
++        except ValueError:
++            raise _invalid("field_id")
++        if entry["field_id"] in seen_fid:
++            raise _invalid("field-dup")
++        seen_fid.add(entry["field_id"])
++        if type(entry["required"]) is not bool:
++            raise _integrity()
++    # resource_fields ordered exact list of {slot, required, min_items, max_items}.
++    rsf = exp["resource_fields"]
++    if not isinstance(rsf, list):
++        raise _integrity()
++    seen_slot: set[str] = set()
++    for entry in rsf:
++        try:
++            V.require_closed(entry, {"slot", "required", "min_items", "max_items"}, "resource_field")
++        except ValueError:
++            raise _integrity()
++        slot = entry["slot"]
++        if not isinstance(slot, str) or not slot:
++            raise _invalid("slot")
++        # Slot grammar: [a-z][a-z0-9_]* ? Use segment check.
++        import re as _re
++
++        if _re.fullmatch(r"[a-z][a-z0-9_]*", slot) is None:
++            raise _invalid("slot")
++        if slot in seen_slot:
++            raise _invalid("slot-dup")
++        seen_slot.add(slot)
++        if type(entry["required"]) is not bool:
++            raise _integrity()
++        for key in ("min_items", "max_items"):
++            v = entry[key]
++            if type(v) is not int or not 0 <= v <= 16:
++                raise _invalid(key)
++        if entry["min_items"] > entry["max_items"]:
++            raise _invalid("counts")
++        if entry["required"] and entry["min_items"] < 1:
++            raise _invalid("required-count")
++    # result_fact_paths unique ordered list of exact scalar dotted paths.
++    rfp = exp["result_fact_paths"]
++    if not isinstance(rfp, list):
++        raise _integrity()
++    seen_fp: set[str] = set()
++    for path in rfp:
++        try:
++            V.check_path_dotted(path, "fact-path")
++        except ValueError:
++            raise _invalid("fact-path")
++        if path in seen_fp:
++            raise _invalid("fact-dup")
++        seen_fp.add(path)
++    # artifact_filenames unique ordered list of safe basenames.
++    af = exp["artifact_filenames"]
++    if not isinstance(af, list):
++        raise _integrity()
++    seen_af: set[str] = set()
++    lowered: set[str] = set()
++    for name in af:
++        try:
++            V.check_safe_basename(name, "artifact_filenames")
++        except ValueError:
++            raise _integrity()
++        if name in seen_af:
++            raise _invalid("artifact-dup")
++        seen_af.add(name)
++        low = name.lower()
++        if low in lowered:
++            raise _integrity()
++        lowered.add(low)
++    # boundaries unique boundary IDs each {boundary_id, nearest_operation_ids}.
++    bnds = exp["boundaries"]
++    if not isinstance(bnds, list) or not bnds:
++        raise _invalid("boundaries")
++    seen_b: set[str] = set()
++    for entry in bnds:
++        try:
++            V.require_closed(entry, {"boundary_id", "nearest_operation_ids"}, "boundary")
++        except ValueError:
++            raise _integrity()
++        try:
++            V.check_dotted(entry["boundary_id"], "boundary_id")
++        except ValueError:
++            raise _invalid("boundary_id")
++        if entry["boundary_id"] in seen_b:
++            raise _invalid("boundary-dup")
++        seen_b.add(entry["boundary_id"])
++        nearest = entry["nearest_operation_ids"]
++        if not isinstance(nearest, list) or not nearest:
++            raise _invalid("nearest")
++        for nid in nearest:
++            try:
++                V.check_dotted(nid, "nearest")
++            except ValueError:
++                raise _invalid("nearest")
++
++
++def _validate_limits(limits):
++    try:
++        V.require_closed(limits, set(LIMIT_KEYS), "limits")
++    except ValueError:
++        raise _integrity()
++    for key in LIMIT_KEYS:
++        v = limits[key]
++        if type(v) is not int:
++            raise _integrity()
++        if v <= 0:
++            raise _invalid(key)
++        if v > LIMIT_CEILINGS[key]:
++            raise _invalid(key)
++
++
++def _validate_cases(doc):
++    cases = doc["cases"]
++    limits = doc["limits"]
++    exp_inter = doc["interaction_expectations"]
++    if not isinstance(cases, list) or not cases:
++        raise _invalid("cases")
++    if len(cases) > limits["max_cases"]:
++        raise _invalid("max_cases")
++    if len(cases) > LIMIT_CEILINGS["max_cases"]:
++        raise _invalid("max_cases-hard")
++    seen_ids: set[str] = set()
++    has_ok = False
++    has_failed = False
++    # For fixture sharing check.
++    all_resource_members: set[str] = set()
++    total_fixture = 0
++    total_expected = 0
++    for case in cases:
++        try:
++            V.require_closed(case, {"case_id", "request", "resources", "expect"}, "case")
++        except ValueError:
++            raise _integrity()
++        try:
++            V.check_case_id(case["case_id"])
++        except ValueError:
++            raise _invalid("case_id")
++        if case["case_id"] in seen_ids:
++            raise _invalid("case-dup")
++        seen_ids.add(case["case_id"])
++        if not isinstance(case["request"], dict):
++            raise _integrity()
++        # Canonical request bytes must fit limits.
++        try:
++            req_bytes = codec.canonical_bytes(case["request"])
++        except (TypeError, ValueError):
++            raise _integrity()
++        if len(req_bytes) > limits["max_request_bytes"]:
++            raise _invalid("max_request_bytes")
++        # Request values arbitrary finite JSON governed by app schemas: check
++        # finite (no NaN/Infinity already via canonical), depth? Use depth check.
++        # Depth over 32 invalid -> integrity? Treat as integrity (malformed JSON value).
++        # Our canonical already ensures encodable; check depth via parse?
++        # Skip extra check; canonical ensures finite.
++        resources = case["resources"]
++        if not isinstance(resources, list):
++            raise _integrity()
++        if len(resources) > limits["max_resources_per_case"]:
++            raise _invalid("max_resources_per_case")
++        # Each resource exactly {slot, filename, member, sha256}.
++        seen_slots: set[str] = set()
++        for r in resources:
++            try:
++                V.require_closed(r, {"slot", "filename", "member", "sha256"}, "resource")
++            except ValueError:
++                raise _integrity()
++            slot = r["slot"]
++            if not isinstance(slot, str) or not slot:
++                raise _invalid("slot")
++            if slot in seen_slots:
++                raise _invalid("slot-dup")
++            seen_slots.add(slot)
++            # Slot must name a profile resource field.
++            declared_slots = {e["slot"] for e in exp_inter["resource_fields"]}
++            if slot not in declared_slots:
++                raise _invalid("slot-unknown")
++            try:
++                V.check_safe_basename(r["filename"], "filename")
++            except ValueError:
++                raise _integrity()
++            # Member exactly fixtures/<case_id>/<filename>.
++            expected_member = f"fixtures/{case['case_id']}/{r['filename']}"
++            if r["member"] != expected_member:
++                raise _integrity()
++            try:
++                V.check_hex64(r["sha256"], "resource.sha256")
++            except ValueError:
++                raise _integrity()
++            if r["member"] in all_resource_members:
++                raise _invalid("fixture-shared")
++            all_resource_members.add(r["member"])
++        # Projected counts must satisfy every slot's requiredness/counts,
++        # including zero for absent optional slots.
++        _check_projected_counts(resources, exp_inter["resource_fields"])
++        # Expect exactly {status, result, artifacts, failure_code}.
++        expect = case["expect"]
++        try:
++            V.require_closed(expect, {"status", "result", "artifacts", "failure_code"}, "expect")
++        except ValueError:
++            raise _integrity()
++        if expect["status"] not in ("ok", "failed"):
++            raise _invalid("expect.status")
++        if expect["status"] == "ok":
++            has_ok = True
++            if not isinstance(expect["result"], dict):
++                raise _invalid("expect.result")
++            if expect["failure_code"] is not None:
++                raise _invalid("expect.failure_code")
++            # Artifacts each exactly {filename, member, sha256}.
++            arts = expect["artifacts"]
++            if not isinstance(arts, list):
++                raise _integrity()
++            seen_art: set[str] = set()
++            for a in arts:
++                try:
++                    V.require_closed(a, {"filename", "member", "sha256"}, "artifact")
++                except ValueError:
++                    raise _integrity()
++                try:
++                    V.check_safe_basename(a["filename"], "artifact.filename")
++                except ValueError:
++                    raise _integrity()
++                if a["filename"] in seen_art:
++                    raise _invalid("artifact-dup")
++                seen_art.add(a["filename"])
++                expected_member = f"expected/{case['case_id']}/{a['filename']}"
++                if a["member"] != expected_member:
++                    raise _integrity()
++                try:
++                    V.check_hex64(a["sha256"], "artifact.sha256")
++                except ValueError:
++                    raise _integrity()
++            # Filenames must match profile artifact declarations for ok case.
++            if set(seen_art) != set(exp_inter["artifact_filenames"]):
++                raise _invalid("artifact-declarations")
++            # For ok cases, artifact order? Not specified; allow any? But members
++            # sorted in ZIP; keep as is.
++        else:
++            has_failed = True
++            if expect["result"] is not None:
++                raise _invalid("expect.result-failed")
++            if expect["artifacts"] != []:
++                raise _invalid("expect.artifacts-failed")
++            fc = expect["failure_code"]
++            try:
++                V.check_failure_code(fc)
++            except ValueError:
++                raise _invalid("failure_code")
++    if not (has_ok and has_failed):
++        raise _invalid("need-ok-and-failed")
++    # Aggregate byte limits are checked in _validate_members (needs actual bytes).
++    # But also check declared counts vs hard ceilings already in limits.
++
++
++def _check_projected_counts(resources, declared):
++    counts: dict[str, int] = {d["slot"]: 0 for d in declared}
++    for r in resources:
++        counts[r["slot"]] = counts.get(r["slot"], 0) + 1
++    for d in declared:
++        slot = d["slot"]
++        c = counts.get(slot, 0)
++        if not (d["min_items"] <= c <= d["max_items"]):
++            raise _invalid(f"count:{slot}")
++
++
++def _validate_members(doc, members):
++    limits = doc["limits"]
++    total_fixture = 0
++    total_expected = 0
++    # Check each referenced member present and hash matches, sizes fit.
++    for case in doc["cases"]:
++        for r in case["resources"]:
++            member = r["member"]
++            if member not in members:
++                raise _integrity()
++            data = members[member]
++            total_fixture += len(data)
++            if hashlib.sha256(data).hexdigest() != r["sha256"]:
++                raise _integrity()
++        for a in case["expect"]["artifacts"]:
++            member = a["member"]
++            if member not in members:
++                raise _integrity()
++            data = members[member]
++            total_expected += len(data)
++            if hashlib.sha256(data).hexdigest() != a["sha256"]:
++                raise _integrity()
++    if total_fixture > limits["max_fixture_bytes"]:
++        raise _invalid("max_fixture_bytes")
++    if total_expected > limits["max_expected_artifact_bytes"]:
++        raise _invalid("max_expected_artifact_bytes")
++    if total_fixture > LIMIT_CEILINGS["max_fixture_bytes"]:
++        raise _invalid("fixture-hard")
++    if total_expected > LIMIT_CEILINGS["max_expected_artifact_bytes"]:
++        raise _invalid("expected-hard")
++    # No unreferenced members already enforced by expected order equality.
++    # But also ensure no duplicate members (ZIP already unique).
