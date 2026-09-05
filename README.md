@@ -2,7 +2,7 @@
 
 Independent, model-free acceptance of copied Capy V1 release candidates against separately frozen synthetic acceptance profiles.
 
-Status: V0 implementation and package qualified under the owner platform amendment. Exact evidence-head CI, closure review and merge status are recorded in the campaign.
+Status: V0 0.1.0 is qualified under the owner platform amendment. Exact implementation, evidence, package and review records are in [the campaign](campaigns/independent_application_acceptance_v0/README.md).
 
 The `capy-acceptor` CLI validates a copied interaction-aware `.capyrc` candidate
 and an independently frozen `.capya` profile, executes bounded test cases, and

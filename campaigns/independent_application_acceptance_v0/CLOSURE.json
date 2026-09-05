@@ -6,13 +6,17 @@
     "Astra product oracle revisions O1-O5 adjudicated separately; original hidden files/scores unchanged",
     "Three failure causes across three failed CI runs repaired and retained in CI-REPAIRS.json"
   ],
+  "evidence_ci_run": 33968479668,
+  "evidence_ci_url": "https://github.com/gazeromo/capy-application-acceptor/actions/runs/33968479668",
+  "evidence_commit": "4db2b39001a53aff0414425ad879c0443cee675e",
+  "evidence_tree": "075de0eb4d337ccd7d7bb9612b2ab610c7df2f7b",
   "implementation": {
     "contract": "capy.independent-application-acceptance/v0",
     "implementation_commit": "05420906f3966a4c73a2261b1ce48d0a48a4d60c",
     "implementation_tree": "dc383e96373ed109b5a8560ee8df6d76be8604b5",
     "version": "0.1.0"
   },
-  "merged": false,
+  "merged_at_recording": false,
   "muse_classification": "high_review_burden",
   "package_sha256": "bc1efe5cf11bc69a573300cf00a659dd71213055f9647eebc7e6ab4860b1b28d",
   "product_qualification": "PASSED_UNDER_OWNER_PLATFORM_AMENDMENT",
@@ -20,15 +24,23 @@
   "publication": false,
   "qualification_ci": 33967453188,
   "qualification_head": "fc7eebdd6c4b47fd5186d2a81c834222061d2e8c",
-  "remaining": [
-    "Evidence-head CI required by plan phase9",
-    "Review E closure-delta ACCEPT",
+  "recording_boundary": "Immutable qualified-candidate closure prepared before merge. Final closure-delta review, remote main and post-merge CI outcomes are recorded by the owner handoff in capy-project and exact GitHub checks; this record does not anticipate their result.",
+  "remaining_at_recording": [
+    "Final closure-delta ACCEPT before merge",
     "strict main fast-forward",
-    "post-merge CI and remote verification"
+    "post-merge CI and remote verification",
+    "Capy control closure"
   ],
   "repository": "gazeromo/capy-application-acceptor",
-  "review_e": "PENDING_EXACT_EVIDENCE_AND_CLOSURE_DELTA",
+  "review_e": "ACCEPT exact evidence4db2b39001a53aff0414425ad879c0443cee675e and passing exact-head CI33968479668; no outstanding findings",
+  "review_verdicts": {
+    "A": "ACCEPT",
+    "B": "ACCEPT",
+    "C": "ACCEPT",
+    "D": "ACCEPT",
+    "E": "ACCEPT"
+  },
   "runtime_mutation": false,
   "schema": "capy.independent-application-acceptance-closure/v0",
-  "status": "REVIEW_CANDIDATE"
+  "status": "ACCEPTED_QUALIFIED_CANDIDATE"
 }
